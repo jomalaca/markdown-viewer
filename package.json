@@ -7,7 +7,8 @@
     "serve": "python3 -m http.server 3000",
     "build:macos": "./scripts/build_macos.sh",
     "uninstall:macos": "./scripts/uninstall_macos.sh",
-    "generate:icon": "./scripts/generate_app_icon.sh"
+    "generate:icon": "./scripts/generate_app_icon.sh",
+    "release": "./scripts/release.sh"
   },
   "keywords": [
     "markdown",

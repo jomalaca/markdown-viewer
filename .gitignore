@@ -1,0 +1,12 @@
+# Build and distribution artifacts
+build/
+dist/
+*.zip
+
+# macOS metadata
+.DS_Store
+*.swp
+
+# Node / Scratch
+node_modules/
+.npm/

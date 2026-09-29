@@ -10,3 +10,6 @@ dist/
 # Node / Scratch
 node_modules/
 .npm/
+
+# Development and Roadmap
+ROADMAP.md

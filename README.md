@@ -72,40 +72,9 @@ Run `./bin/markdown-viewer` directly in your shell prompt (do not prefix with `o
 
 ---
 
-## Architecture
+## Documentation
 
-Markdown Viewer combines a Swift AppKit desktop host with a sandboxed WebKit rendering engine.
-
-```mermaid
-flowchart TD
-    subgraph AppKit[Native macOS AppKit Host]
-        NSApp[NSApplication]
-        Menus[Native Menus & Shortcuts]
-        Panels[NSOpenPanel / NSSavePanel]
-    end
-
-    subgraph WebKit[WebKit Engine]
-        Bridge[WKScriptMessageHandler Bridge]
-        WKWeb[WKWebView Sandbox]
-    end
-
-    subgraph FrontEnd[Editor & Preview Workspace]
-        State[Tab & Document State Engine]
-        History[Per-Tab History Stack]
-        Renderers[Markdown + KaTeX + Mermaid + JSON/YAML Engine]
-    end
-
-    Menus -->|evaluateJavaScript| WKWeb
-    WKWeb <-->|postMessage| Bridge
-    Bridge <--> Panels
-    WKWeb --> State
-    State --> History
-    State --> Renderers
-```
-
-- **Host Bridge**: Menubar actions, file dialogs, and save confirmations communicate across a bidirectional `WKScriptMessageHandler` interface.
-- **Document Safety**: Unsaved state is tracked per tab with visual indicators (`●`) and guarded exit flows.
-- **Isolated Storage**: Local storage caching and direct disk access operate with zero external network dependencies.
+For technical design, AppKit-WebKit bridge architecture, and local asset resolution details, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
 

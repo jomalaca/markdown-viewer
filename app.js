@@ -636,6 +636,66 @@ function calculateStats(markdownText) {
     DOM.outlineNav.appendChild(frag);
   }
 
+  // --- Local & Relative Image URL Resolver ---
+  function resolveImageSrc(src, activeTab) {
+    if (!src) return '';
+    let trimmed = src.trim();
+
+    // Unwrap angle brackets: <path/to/img>
+    if (trimmed.startsWith('<') && trimmed.endsWith('>')) {
+      trimmed = trimmed.substring(1, trimmed.length - 1).trim();
+    }
+
+    // Preserve web schemes and data URIs directly
+    if (/^(https?:|data:|blob:|local-file:)/i.test(trimmed)) {
+      return trimmed;
+    }
+
+    // Decode URI if already percent-encoded
+    let decoded = trimmed;
+    try {
+      decoded = decodeURI(trimmed);
+    } catch (e) {}
+
+    const filePath = activeTab?.filePath;
+    let absolutePath = '';
+
+    if (decoded.startsWith('/')) {
+      absolutePath = decoded;
+    } else if (filePath) {
+      const lastSlash = filePath.lastIndexOf('/');
+      const docDir = lastSlash !== -1 ? filePath.substring(0, lastSlash) : '';
+      const combined = docDir + '/' + decoded;
+      const parts = combined.split('/');
+      const resolved = [];
+      for (const part of parts) {
+        if (part === '' || part === '.') {
+          if (resolved.length === 0) resolved.push('');
+          continue;
+        }
+        if (part === '..') {
+          if (resolved.length > 1) resolved.pop();
+          continue;
+        }
+        resolved.push(part);
+      }
+      absolutePath = resolved.join('/');
+    } else {
+      return trimmed;
+    }
+
+    if (!absolutePath.startsWith('/')) {
+      absolutePath = '/' + absolutePath;
+    }
+
+    // When running inside macOS AppKit host with local-file scheme handler
+    if (window.webkit && window.webkit.messageHandlers) {
+      return 'local-file://' + encodeURI(absolutePath);
+    }
+
+    return absolutePath;
+  }
+
   // --- Render Markdown to HTML ---
   let mermaidCounter = 0;
   function renderMarkdown(content) {
@@ -651,8 +711,19 @@ function calculateStats(markdownText) {
     // Extract & process LaTeX math
     const { text, mathBlocks } = processMath(content);
 
-    // Custom marked renderer for mermaid and code blocks
+    // Custom marked renderer for images, mermaid and code blocks
     const renderer = new marked.Renderer();
+
+    renderer.image = function(arg1, arg2, arg3) {
+      const href = (typeof arg1 === 'object' && arg1 !== null) ? arg1.href : arg1;
+      const title = (typeof arg1 === 'object' && arg1 !== null) ? arg1.title : arg2;
+      const text = (typeof arg1 === 'object' && arg1 !== null) ? arg1.text : arg3;
+      const resolvedSrc = resolveImageSrc(href, activeTab);
+      const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+      const altAttr = text ? ` alt="${escapeHtml(text)}"` : '';
+      return `<img src="${resolvedSrc}"${altAttr}${titleAttr} loading="lazy" />`;
+    };
+
     renderer.code = function(arg1, arg2, arg3) {
       let code = (typeof arg1 === 'object' && arg1 !== null) ? arg1.text : arg1;
       const infostring = (typeof arg1 === 'object' && arg1 !== null) ? arg1.lang : arg2;
@@ -708,12 +779,25 @@ function calculateStats(markdownText) {
     // Sanitize with DOMPurify
     if (window.DOMPurify) {
       rawHtml = DOMPurify.sanitize(rawHtml, {
-        ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'mover', 'munder', 'msqrt', 'mtable', 'mtr', 'mtd', 'span', 'div', 'input'],
-        ADD_ATTR: ['target', 'type', 'checked', 'class', 'style', 'aria-hidden', 'viewbox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'd']
+        ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'mover', 'munder', 'msqrt', 'mtable', 'mtr', 'mtd', 'span', 'div', 'input', 'img'],
+        ADD_ATTR: ['target', 'type', 'checked', 'class', 'style', 'aria-hidden', 'viewbox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'd', 'src', 'alt', 'title', 'loading', 'width', 'height'],
+        ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|local-file|data|file):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+        ADD_DATA_URI_TAGS: ['img']
       });
     }
 
     DOM.previewRendered.innerHTML = rawHtml;
+
+    // Resolve any raw HTML <img> tags with relative paths
+    DOM.previewRendered.querySelectorAll('img').forEach(img => {
+      const srcAttr = img.getAttribute('src');
+      if (srcAttr) {
+        const resolved = resolveImageSrc(srcAttr, activeTab);
+        if (resolved && resolved !== srcAttr) {
+          img.setAttribute('src', resolved);
+        }
+      }
+    });
 
     // Render Mermaid diagrams
     if (window.mermaid) {

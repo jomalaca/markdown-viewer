@@ -61,6 +61,10 @@ if [ -f "${PROJECT_ROOT}/macos/resources/AppIcon.icns" ]; then
   cp "${PROJECT_ROOT}/macos/resources/AppIcon.icns" "${RESOURCES}/AppIcon.icns"
 fi
 
+# 5c. Ad-hoc codesign entire .app bundle (seals Info.plist, binaries, and resources)
+echo "==> Code signing application bundle..."
+codesign --force --deep --sign - "${APP_DIR}"
+
 # 6. Create distribution zip archive
 echo "==> Packaging distribution zip..."
 (cd "${BUILD_DIR}" && zip -r -q -y "${DIST_DIR}/MarkdownViewer-macOS.zip" "Markdown Viewer.app")

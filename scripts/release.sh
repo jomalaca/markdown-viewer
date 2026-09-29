@@ -7,6 +7,8 @@
 
 set -euo pipefail
 
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TAP_REPO="jomalaca/homebrew-tap"
 MAIN_REPO="jomalaca/markdown-viewer"

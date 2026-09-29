@@ -1005,8 +1005,11 @@ html[data-theme="nord"] .tab-dirty-dot {
 /* Images */
 .markdown-rendered img {
   max-width: 100%;
-  box-sizing: content-box;
+  height: auto;
+  box-sizing: border-box;
   border-radius: 6px;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* Mermaid Diagrams Container */

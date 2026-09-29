@@ -7,6 +7,55 @@ import UniformTypeIdentifiers
 // 100% Private, Local-First, Fast Native AppKit + WKWebView
 // ==============================================================================
 
+// MARK: - Local File Scheme Handler for Images & Media
+class LocalFileSchemeHandler: NSObject, WKURLSchemeHandler {
+    func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
+        guard let url = urlSchemeTask.request.url else {
+            urlSchemeTask.didFailWithError(NSError(domain: "LocalFileSchemeHandler", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"]))
+            return
+        }
+
+        let rawPath = url.path
+        let filePath = rawPath.removingPercentEncoding ?? rawPath
+
+        guard FileManager.default.fileExists(atPath: filePath) else {
+            NSLog("LocalFileSchemeHandler: File not found at \(filePath)")
+            let response = HTTPURLResponse(url: url, statusCode: 404, httpVersion: "HTTP/1.1", headerFields: [
+                "Access-Control-Allow-Origin": "*"
+            ])!
+            urlSchemeTask.didReceive(response)
+            urlSchemeTask.didFinish()
+            return
+        }
+
+        do {
+            let fileURL = URL(fileURLWithPath: filePath)
+            let data = try Data(contentsOf: fileURL)
+            let ext = fileURL.pathExtension.lowercased()
+            let mimeType = UTType(filenameExtension: ext)?.preferredMIMEType ?? "application/octet-stream"
+
+            let headers = [
+                "Content-Type": mimeType,
+                "Content-Length": String(data.count),
+                "Access-Control-Allow-Origin": "*",
+                "Cache-Control": "max-age=3600"
+            ]
+
+            let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: headers)!
+            urlSchemeTask.didReceive(response)
+            urlSchemeTask.didReceive(data)
+            urlSchemeTask.didFinish()
+        } catch {
+            NSLog("LocalFileSchemeHandler error reading \(filePath): \(error)")
+            urlSchemeTask.didFailWithError(error)
+        }
+    }
+
+    func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
+        // Nothing to cancel for instantaneous local disk reads
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigationDelegate, WKScriptMessageHandler, WKUIDelegate, NSMenuItemValidation {
     var window: NSWindow!
     var webView: WKWebView!
@@ -55,6 +104,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
         config.defaultWebpagePreferences = prefs
         config.userContentController.add(self, name: "nativeApp")
         config.preferences.setValue(true, forKey: "developerExtrasEnabled")
+        config.setURLSchemeHandler(LocalFileSchemeHandler(), forURLScheme: "local-file")
 
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self

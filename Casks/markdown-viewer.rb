@@ -8,15 +8,10 @@ cask "markdown-viewer" do
   desc "100% private, local-first Markdown viewer and editor with live GFM, math, and diagrams"
   homepage "https://github.com/jomalaca/markdown-viewer"
 
-  depends_on macos: ">= :ventura"
+  depends_on macos: :ventura
 
   app "Markdown Viewer.app"
   binary "#{appdir}/Markdown Viewer.app/Contents/MacOS/markdown-viewer-cli", target: "markdown-viewer"
-
-  postflight do
-    # Ensure CLI executable has execution permissions
-    set_permissions "#{appdir}/Markdown Viewer.app/Contents/MacOS/markdown-viewer-cli", "0755"
-  end
 
   zap trash: [
     "~/Library/Application Support/MarkdownViewer",

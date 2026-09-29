@@ -14,7 +14,9 @@ RESOURCES="${CONTENTS}/Resources"
 DIST_DIR="${PROJECT_ROOT}/dist"
 CACHE_DIR="${BUILD_DIR}/module-cache"
 
-echo "==> Building Markdown Viewer.app (macOS Native)..."
+APP_VERSION="$(node -p "require('${PROJECT_ROOT}/package.json').version" 2>/dev/null || echo "1.0.0")"
+
+echo "==> Building Markdown Viewer.app v${APP_VERSION} (macOS Native)..."
 
 # 1. Clean stale module cache & prepare directory structure
 rm -rf "${CACHE_DIR}"
@@ -28,13 +30,16 @@ swiftc \
   "${PROJECT_ROOT}/macos/src/main.swift" \
   -o "${MACOS}/Markdown Viewer"
 
-# 3. Copy Info.plist
-echo "==> Installing Info.plist..."
+# 3. Copy & dynamically stamp Info.plist
+echo "==> Installing and stamping Info.plist (v${APP_VERSION})..."
 cp "${PROJECT_ROOT}/macos/Info.plist" "${CONTENTS}/Info.plist"
+plutil -replace CFBundleShortVersionString -string "${APP_VERSION}" "${CONTENTS}/Info.plist"
+plutil -replace CFBundleVersion -string "${APP_VERSION}" "${CONTENTS}/Info.plist" 2>/dev/null || \
+  plutil -insert CFBundleVersion -string "${APP_VERSION}" "${CONTENTS}/Info.plist"
 
-# 4. Install CLI wrapper into .app bundle
-echo "==> Bundling markdown-viewer CLI launcher..."
-cp "${PROJECT_ROOT}/bin/markdown-viewer" "${MACOS}/markdown-viewer-cli"
+# 4. Install CLI wrapper into .app bundle with synchronized version
+echo "==> Bundling markdown-viewer CLI launcher (v${APP_VERSION})..."
+sed -E "s/VERSION=\"[^\"]+\"/VERSION=\"${APP_VERSION}\"/" "${PROJECT_ROOT}/bin/markdown-viewer" > "${MACOS}/markdown-viewer-cli"
 chmod +x "${MACOS}/markdown-viewer-cli"
 
 # 5. Bundle Web Application & Sample Files into Resources

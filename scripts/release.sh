@@ -62,8 +62,8 @@ if ! gh auth status >/dev/null 2>&1; then
   gh auth login --web --hostname github.com
 fi
 
-# 4. Bump version in package.json
-echo "==> Bumping version in package.json..."
+# 4. Bump version in package.json, macos/Info.plist, and bin/markdown-viewer
+echo "==> Bumping version in package.json, macos/Info.plist, and bin/markdown-viewer..."
 TMP_PKG="$(mktemp)"
 node -e '
   const pkg = require("./package.json");
@@ -71,6 +71,12 @@ node -e '
   console.log(JSON.stringify(pkg, null, 2));
 ' "${VERSION}" > "${TMP_PKG}"
 mv "${TMP_PKG}" "${PROJECT_ROOT}/package.json"
+
+plutil -replace CFBundleShortVersionString -string "${VERSION}" "${PROJECT_ROOT}/macos/Info.plist"
+plutil -replace CFBundleVersion -string "${VERSION}" "${PROJECT_ROOT}/macos/Info.plist" 2>/dev/null || \
+  plutil -insert CFBundleVersion -string "${VERSION}" "${PROJECT_ROOT}/macos/Info.plist"
+
+sed -i '' -E "s/VERSION=\"[^\"]+\"/VERSION=\"${VERSION}\"/" "${PROJECT_ROOT}/bin/markdown-viewer"
 
 # 5. Build native macOS app and packaging zip
 echo "==> Building macOS native app..."
@@ -95,7 +101,7 @@ sed -i '' -E "s/sha256 \"[^\"]+\"/sha256 \"${SHA256}\"/" "${CASK_FILE}"
 
 # 8. Commit and push git tag
 echo "==> Creating release commit and git tag ${TAG}..."
-git add "${PROJECT_ROOT}/package.json" "${CASK_FILE}"
+git add "${PROJECT_ROOT}/package.json" "${PROJECT_ROOT}/macos/Info.plist" "${PROJECT_ROOT}/bin/markdown-viewer" "${CASK_FILE}"
 git commit -m "chore(release): ${TAG} [skip ci]"
 git tag -a "${TAG}" -m "Release ${TAG}"
 

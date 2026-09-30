@@ -9,6 +9,10 @@ import UniformTypeIdentifiers
 
 // MARK: - Local File Scheme Handler for Images & Media
 class LocalFileSchemeHandler: NSObject, WKURLSchemeHandler {
+    private let allowedImageExtensions: Set<String> = [
+        "png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "bmp", "avif", "tiff", "tif"
+    ]
+
     func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
         guard let url = urlSchemeTask.request.url else {
             urlSchemeTask.didFailWithError(NSError(domain: "LocalFileSchemeHandler", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"]))
@@ -16,28 +20,49 @@ class LocalFileSchemeHandler: NSObject, WKURLSchemeHandler {
         }
 
         let rawPath = url.path
-        let filePath = rawPath.removingPercentEncoding ?? rawPath
+        let filePath = (rawPath.removingPercentEncoding ?? rawPath)
+        let fileURL = URL(fileURLWithPath: filePath).standardized
+        let ext = fileURL.pathExtension.lowercased()
 
-        guard FileManager.default.fileExists(atPath: filePath) else {
-            NSLog("LocalFileSchemeHandler: File not found at \(filePath)")
-            let response = HTTPURLResponse(url: url, statusCode: 404, httpVersion: "HTTP/1.1", headerFields: [
-                "Access-Control-Allow-Origin": "*"
+        // 1. Enforce strict image extension whitelist
+        guard allowedImageExtensions.contains(ext) else {
+            NSLog("LocalFileSchemeHandler: Blocked request for non-image file extension: \(ext)")
+            let response = HTTPURLResponse(url: url, statusCode: 403, httpVersion: "HTTP/1.1", headerFields: [
+                "Content-Type": "text/plain"
+            ])!
+            urlSchemeTask.didReceive(response)
+            urlSchemeTask.didReceive(Data("Forbidden: Non-image file type".utf8))
+            urlSchemeTask.didFinish()
+            return
+        }
+
+        // 2. Block hidden / sensitive system files (.env, .ssh, etc.)
+        let fileName = fileURL.lastPathComponent
+        if fileName.hasPrefix(".") && !fileName.hasPrefix(".DS_Store") {
+            NSLog("LocalFileSchemeHandler: Blocked request for hidden file: \(fileName)")
+            let response = HTTPURLResponse(url: url, statusCode: 403, httpVersion: "HTTP/1.1", headerFields: [
+                "Content-Type": "text/plain"
             ])!
             urlSchemeTask.didReceive(response)
             urlSchemeTask.didFinish()
             return
         }
 
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            NSLog("LocalFileSchemeHandler: File not found at \(fileURL.path)")
+            let response = HTTPURLResponse(url: url, statusCode: 404, httpVersion: "HTTP/1.1", headerFields: nil)!
+            urlSchemeTask.didReceive(response)
+            urlSchemeTask.didFinish()
+            return
+        }
+
         do {
-            let fileURL = URL(fileURLWithPath: filePath)
             let data = try Data(contentsOf: fileURL)
-            let ext = fileURL.pathExtension.lowercased()
-            let mimeType = UTType(filenameExtension: ext)?.preferredMIMEType ?? "application/octet-stream"
+            let mimeType = UTType(filenameExtension: ext)?.preferredMIMEType ?? "image/\(ext)"
 
             let headers = [
                 "Content-Type": mimeType,
                 "Content-Length": String(data.count),
-                "Access-Control-Allow-Origin": "*",
                 "Cache-Control": "max-age=3600"
             ]
 
@@ -46,7 +71,7 @@ class LocalFileSchemeHandler: NSObject, WKURLSchemeHandler {
             urlSchemeTask.didReceive(data)
             urlSchemeTask.didFinish()
         } catch {
-            NSLog("LocalFileSchemeHandler error reading \(filePath): \(error)")
+            NSLog("LocalFileSchemeHandler error reading \(fileURL.path): \(error)")
             urlSchemeTask.didFailWithError(error)
         }
     }
@@ -60,6 +85,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
     var window: NSWindow!
     var webView: WKWebView!
     var pendingFiles: [String] = []
+    var openedFiles: Set<String> = []
     var isWebLoaded: Bool = false
 
     enum PendingSaveContinuation {
@@ -190,11 +216,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
     }
 
     func openMarkdownFile(_ path: String) {
-        let fileURL = URL(fileURLWithPath: path)
+        let fileURL = URL(fileURLWithPath: path).standardized
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
             NSLog("File does not exist: \(path)")
             return
         }
+
+        openedFiles.insert(fileURL.path)
 
         do {
             let content = try String(contentsOf: fileURL, encoding: .utf8)
@@ -246,10 +274,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
             let hasKnownExt = rawTitle.hasSuffix(".md") || rawTitle.hasSuffix(".markdown") || rawTitle.hasSuffix(".json") || rawTitle.hasSuffix(".yaml") || rawTitle.hasSuffix(".yml") || rawTitle.hasSuffix(".txt")
             let title = hasKnownExt ? rawTitle : "\(rawTitle).md"
 
-            if let path = existingPath, !saveAs, !path.isEmpty && FileManager.default.fileExists(atPath: path) {
-                // Direct write to existing file on disk
+            let standardizedPath = existingPath.map { URL(fileURLWithPath: $0).standardized.path }
+            let isVerifiedOpenedFile = standardizedPath.map { openedFiles.contains($0) } ?? false
+
+            if let path = standardizedPath, !saveAs, !path.isEmpty && FileManager.default.fileExists(atPath: path) && isVerifiedOpenedFile {
+                // Direct write to existing file on disk (strictly verified as opened in this session)
                 do {
                     try content.write(toFile: path, atomically: true, encoding: .utf8)
+                    openedFiles.insert(path)
                     let pathJSON = jsonString(from: path)
                     let titleJSON = jsonString(from: URL(fileURLWithPath: path).lastPathComponent)
                     let tabIdJSON = jsonString(from: tabId)
@@ -278,13 +310,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
                 if let yamlType = UTType(filenameExtension: "yaml") { saveTypes.append(yamlType) }
                 if let ymlType = UTType(filenameExtension: "yml") { saveTypes.append(ymlType) }
                 panel.allowedContentTypes = saveTypes
-                if let path = existingPath, !path.isEmpty {
+                if let path = standardizedPath, !path.isEmpty {
                     panel.directoryURL = URL(fileURLWithPath: path).deletingLastPathComponent()
                 }
                 if panel.runModal() == .OK, let targetURL = panel.url {
+                    let targetPath = targetURL.standardized.path
                     do {
-                        try content.write(to: targetURL, atomically: true, encoding: .utf8)
-                        let pathJSON = jsonString(from: targetURL.path)
+                        try content.write(toFile: targetPath, atomically: true, encoding: .utf8)
+                        openedFiles.insert(targetPath)
+                        let pathJSON = jsonString(from: targetPath)
                         let titleJSON = jsonString(from: targetURL.lastPathComponent)
                         let tabIdJSON = jsonString(from: tabId)
                         webView.evaluateJavaScript("window.onFileSavedFromHost?.(\(tabIdJSON), \(pathJSON), \(titleJSON));", completionHandler: nil)

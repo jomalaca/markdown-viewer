@@ -1,10 +1,11 @@
 name: Release Markdown Viewer
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release Tag (e.g. v1.1.2)'
+        required: true
 
 permissions:
   contents: write

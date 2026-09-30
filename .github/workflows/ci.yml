@@ -1,0 +1,41 @@
+name: CI & Audit Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    name: Build macOS App & Verify Audit
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Milestone 1 Security & Hygiene Tests
+        run: |
+          chmod +x scripts/test_milestone1.sh
+          ./scripts/test_milestone1.sh
+
+      - name: Build macOS Application Bundle & Package Zip
+        run: |
+          chmod +x scripts/build_macos.sh
+          ./scripts/build_macos.sh
+
+      - name: Upload Test & Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MarkdownViewer-macOS-build
+          path: |
+            dist/MarkdownViewer-macOS.zip
+            build/logs/build-manifest.json
+          retention-days: 14

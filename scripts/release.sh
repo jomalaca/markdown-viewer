@@ -123,6 +123,8 @@ trap 'rm -rf "${TMP_TAP_DIR}"' EXIT
 
 if gh repo view "${TAP_REPO}" >/dev/null 2>&1; then
   gh repo clone "${TAP_REPO}" "${TMP_TAP_DIR}/tap" -- --depth=1
+  git -C "${TMP_TAP_DIR}/tap" config user.name "Josh Ma"
+  git -C "${TMP_TAP_DIR}/tap" config user.email "jomalaca@users.noreply.github.com"
   mkdir -p "${TMP_TAP_DIR}/tap/Casks"
   cp "${CASK_FILE}" "${TMP_TAP_DIR}/tap/Casks/markdown-viewer.rb"
 

@@ -1,6 +1,6 @@
 cask "markdown-viewer" do
-  version "1.1.1"
-  sha256 "49ce076d20b02d46dc89c6df8e35967eafab0357e03fcfef3b5fb202095a513a"
+  version "1.1.2"
+  sha256 "8852229e7199ea53346e6bf9f3bf03a0ba1a67a40724672628fe5d69aec55882"
 
   # For GitHub Releases (or private tap assets):
   url "https://github.com/jomalaca/markdown-viewer/releases/download/v#{version}/MarkdownViewer-macOS.zip"

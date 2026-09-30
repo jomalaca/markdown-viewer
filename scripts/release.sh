@@ -102,7 +102,9 @@ sed -i '' -E "s/sha256 \"[^\"]+\"/sha256 \"${SHA256}\"/" "${CASK_FILE}"
 # 8. Commit and push git tag
 echo "==> Creating release commit and git tag ${TAG}..."
 git add "${PROJECT_ROOT}/package.json" "${PROJECT_ROOT}/macos/Info.plist" "${PROJECT_ROOT}/bin/markdown-viewer" "${CASK_FILE}"
-git commit -m "chore(release): ${TAG} [skip ci]"
+if ! git diff --cached --quiet; then
+  git commit -m "chore(release): ${TAG} [skip ci]"
+fi
 git tag -a "${TAG}" -m "Release ${TAG}"
 
 echo "==> Pushing commit and tag to ${MAIN_REPO}..."

@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - main
-      - 'milestone/**'
   workflow_dispatch:
 
 permissions:
@@ -16,7 +15,7 @@ permissions:
 jobs:
   test-and-build:
     name: Build macOS App & Verify Audit
-    runs-on: macos-13
+    runs-on: macos-latest
 
     steps:
       - name: Checkout Repository

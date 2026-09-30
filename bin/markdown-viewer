@@ -6,7 +6,7 @@
 
 set -e
 
-VERSION="1.1.2"
+VERSION="1.2.0"
 
 # Auto-close transient Terminal window if launched via LaunchServices ('open bin/markdown-viewer')
 cleanup_transient_terminal() {

@@ -621,6 +621,7 @@ html[data-theme="nord"] .tab-dirty-dot {
   flex: 1;
   border-right: 1px solid var(--border-color);
   background-color: var(--bg-primary);
+  position: relative;
 }
 
 .pane-preview {
@@ -1613,3 +1614,199 @@ html[data-theme="sepia"] .json-tree-null { color: #9a322c; }
     page-break-after: avoid;
   }
 }
+
+/* --- Floating Find & Replace Toolbar --- */
+.find-replace-bar {
+  position: absolute;
+  top: 48px;
+  right: 18px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1);
+  padding: 6px;
+  gap: 6px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  min-width: 320px;
+  max-width: 440px;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  backdrop-filter: blur(8px);
+}
+
+.find-replace-bar.hidden {
+  display: none !important;
+}
+
+.find-row,
+.replace-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.find-toggle-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.find-toggle-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.find-toggle-btn.expanded svg {
+  transform: rotate(90deg);
+}
+
+.find-input-wrapper,
+.replace-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.find-input {
+  width: 100%;
+  height: 26px;
+  padding: 3px 60px 3px 8px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.replace-input-wrapper .find-input {
+  padding-right: 8px;
+}
+
+.find-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+  background-color: var(--bg-primary);
+}
+
+.find-count {
+  position: absolute;
+  right: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  pointer-events: none;
+  user-select: none;
+}
+
+.find-count.has-matches {
+  color: var(--text-secondary);
+}
+
+.find-count.no-matches {
+  color: #cf222e;
+}
+
+.find-options {
+  display: flex;
+  gap: 2px;
+}
+
+.find-opt-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.find-opt-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.find-opt-btn.active {
+  background-color: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.find-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.find-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.find-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.find-close-btn:hover {
+  background-color: rgba(207, 34, 46, 0.1);
+  color: #cf222e;
+}
+
+.replace-spacer {
+  width: 20px;
+}
+
+.replace-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.find-action-btn {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--text-primary);
+  cursor: pointer;
+  height: 26px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.find-action-btn:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--text-muted);
+}
+
+.find-action-btn:active {
+  background-color: var(--border-color);
+}
+

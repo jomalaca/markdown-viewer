@@ -158,6 +158,19 @@ function calculateStats(markdownText) {
     customCssInput: document.getElementById('custom-css-input'),
     openCheatsheetBtn: document.getElementById('open-cheatsheet-btn'),
     cheatsheetModal: document.getElementById('cheatsheet-modal'),
+    findReplaceBar: document.getElementById('find-replace-bar'),
+    findReplaceToggleBtn: document.getElementById('find-replace-toggle-btn'),
+    findInput: document.getElementById('find-input'),
+    findCount: document.getElementById('find-count'),
+    findOptCase: document.getElementById('find-opt-case'),
+    findOptWord: document.getElementById('find-opt-word'),
+    findPrevBtn: document.getElementById('find-prev-btn'),
+    findNextBtn: document.getElementById('find-next-btn'),
+    findCloseBtn: document.getElementById('find-close-btn'),
+    replaceRow: document.getElementById('replace-row'),
+    replaceInput: document.getElementById('replace-input'),
+    replaceOneBtn: document.getElementById('replace-one-btn'),
+    replaceAllBtn: document.getElementById('replace-all-btn'),
     toolbarBtns: document.querySelectorAll('.editor-toolbar .tool-btn'),
     statsWords: document.getElementById('stats-words'),
     statsChars: document.getElementById('stats-chars'),
@@ -1974,10 +1987,309 @@ function calculateStats(markdownText) {
     }, 2000);
   }
 
+  // --- Find & Replace Controller ---
+  const FindReplaceController = {
+    isOpen: false,
+    isReplaceOpen: false,
+    matchCase: false,
+    matchWord: false,
+    matches: [],
+    currentIndex: -1,
+
+    init() {
+      if (!DOM.findReplaceBar) return;
+
+      DOM.findInput.addEventListener('input', () => this.search());
+      DOM.findInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (e.shiftKey) this.prev();
+          else this.next();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          this.close();
+        }
+      });
+
+      DOM.replaceInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (e.metaKey || e.altKey) this.replaceAll();
+          else this.replaceOne();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          this.close();
+        }
+      });
+
+      DOM.findNextBtn.addEventListener('click', () => this.next());
+      DOM.findPrevBtn.addEventListener('click', () => this.prev());
+      DOM.findCloseBtn.addEventListener('click', () => this.close());
+
+      DOM.findReplaceToggleBtn.addEventListener('click', () => {
+        this.toggleReplace();
+      });
+
+      DOM.findOptCase.addEventListener('click', () => {
+        this.matchCase = !this.matchCase;
+        DOM.findOptCase.classList.toggle('active', this.matchCase);
+        DOM.findOptCase.setAttribute('aria-pressed', this.matchCase ? 'true' : 'false');
+        this.search();
+      });
+
+      DOM.findOptWord.addEventListener('click', () => {
+        this.matchWord = !this.matchWord;
+        DOM.findOptWord.classList.toggle('active', this.matchWord);
+        DOM.findOptWord.setAttribute('aria-pressed', this.matchWord ? 'true' : 'false');
+        this.search();
+      });
+
+      DOM.replaceOneBtn.addEventListener('click', () => this.replaceOne());
+      DOM.replaceAllBtn.addEventListener('click', () => this.replaceAll());
+    },
+
+    open(showReplace = false) {
+      this.isOpen = true;
+      DOM.findReplaceBar.classList.remove('hidden');
+
+      // If in preview-only mode, switch to split mode so editor is accessible
+      if (state.viewMode === 'preview') {
+        setViewMode('split');
+      }
+
+      if (showReplace) {
+        this.toggleReplace(true);
+      }
+
+      // If user has a selection in editor (short single line), populate find
+      const start = DOM.editorInput.selectionStart;
+      const end = DOM.editorInput.selectionEnd;
+      if (start !== end) {
+        const selected = DOM.editorInput.value.substring(start, end);
+        if (selected.length < 120 && !selected.includes('\n')) {
+          DOM.findInput.value = selected;
+        }
+      }
+
+      this.search();
+
+      if (showReplace && DOM.findInput.value.trim().length > 0) {
+        DOM.replaceInput.focus();
+        DOM.replaceInput.select();
+      } else {
+        DOM.findInput.focus();
+        DOM.findInput.select();
+      }
+    },
+
+    close() {
+      this.isOpen = false;
+      DOM.findReplaceBar.classList.add('hidden');
+      DOM.editorInput.focus();
+    },
+
+    toggleReplace(forceState) {
+      this.isReplaceOpen = (typeof forceState === 'boolean') ? forceState : !this.isReplaceOpen;
+      DOM.replaceRow.classList.toggle('hidden', !this.isReplaceOpen);
+      DOM.findReplaceToggleBtn.classList.toggle('expanded', this.isReplaceOpen);
+      if (this.isReplaceOpen) {
+        DOM.replaceInput.focus();
+      } else {
+        DOM.findInput.focus();
+      }
+    },
+
+    search() {
+      const query = DOM.findInput.value;
+      this.matches = [];
+      this.currentIndex = -1;
+
+      if (!query) {
+        DOM.findCount.textContent = '';
+        DOM.findCount.className = 'find-count';
+        return;
+      }
+
+      const text = DOM.editorInput.value;
+      const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      let pattern = escapedQuery;
+      if (this.matchWord) {
+        pattern = `\\b${pattern}\\b`;
+      }
+
+      const flags = this.matchCase ? 'g' : 'gi';
+      try {
+        const regex = new RegExp(pattern, flags);
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+          this.matches.push({ start: match.index, end: match.index + match[0].length });
+          if (!regex.global) break;
+          if (match[0].length === 0) regex.lastIndex++;
+        }
+      } catch (e) {
+        console.error('Invalid search pattern', e);
+      }
+
+      if (this.matches.length > 0) {
+        const cursor = DOM.editorInput.selectionStart;
+        let bestIndex = 0;
+        for (let i = 0; i < this.matches.length; i++) {
+          if (this.matches[i].start >= cursor) {
+            bestIndex = i;
+            break;
+          }
+        }
+        this.currentIndex = bestIndex;
+        this.selectMatch(this.currentIndex, false);
+        DOM.findCount.textContent = `${this.currentIndex + 1} of ${this.matches.length}`;
+        DOM.findCount.className = 'find-count has-matches';
+      } else {
+        DOM.findCount.textContent = 'No results';
+        DOM.findCount.className = 'find-count no-matches';
+      }
+    },
+
+    next() {
+      if (this.matches.length === 0) {
+        this.search();
+        return;
+      }
+      this.currentIndex = (this.currentIndex + 1) % this.matches.length;
+      this.selectMatch(this.currentIndex, true);
+      DOM.findCount.textContent = `${this.currentIndex + 1} of ${this.matches.length}`;
+    },
+
+    prev() {
+      if (this.matches.length === 0) {
+        this.search();
+        return;
+      }
+      this.currentIndex = (this.currentIndex - 1 + this.matches.length) % this.matches.length;
+      this.selectMatch(this.currentIndex, true);
+      DOM.findCount.textContent = `${this.currentIndex + 1} of ${this.matches.length}`;
+    },
+
+    selectMatch(index, doScroll = true) {
+      if (index < 0 || index >= this.matches.length) return;
+      const match = this.matches[index];
+      DOM.editorInput.focus();
+      DOM.editorInput.setSelectionRange(match.start, match.end);
+
+      if (doScroll) {
+        const linesBefore = DOM.editorInput.value.substring(0, match.start).split('\n').length;
+        const totalLines = DOM.editorInput.value.split('\n').length;
+        const targetScroll = (linesBefore / totalLines) * DOM.editorInput.scrollHeight - (DOM.editorInput.clientHeight / 2);
+        DOM.editorInput.scrollTop = Math.max(0, targetScroll);
+      }
+    },
+
+    replaceOne() {
+      if (this.matches.length === 0 || this.currentIndex < 0) return;
+      const match = this.matches[this.currentIndex];
+      const replacement = DOM.replaceInput.value;
+
+      DOM.editorInput.focus();
+      DOM.editorInput.setSelectionRange(match.start, match.end);
+
+      EditorHistory.push(DOM.editorInput.value, match.start, match.end, true);
+
+      let success = false;
+      try {
+        success = document.execCommand('insertText', false, replacement);
+      } catch (e) {}
+
+      if (!success) {
+        const val = DOM.editorInput.value;
+        DOM.editorInput.value = val.substring(0, match.start) + replacement + val.substring(match.end);
+        DOM.editorInput.setSelectionRange(match.start + replacement.length, match.start + replacement.length);
+      }
+
+      handleEditorInput();
+      this.search();
+    },
+
+    replaceAll() {
+      const query = DOM.findInput.value;
+      if (!query || this.matches.length === 0) return;
+      const replacement = DOM.replaceInput.value;
+
+      const text = DOM.editorInput.value;
+      const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      let pattern = escapedQuery;
+      if (this.matchWord) {
+        pattern = `\\b${pattern}\\b`;
+      }
+      const flags = this.matchCase ? 'g' : 'gi';
+      const regex = new RegExp(pattern, flags);
+
+      const count = this.matches.length;
+      EditorHistory.push(text, 0, 0, true);
+
+      const newText = text.replace(regex, replacement);
+      DOM.editorInput.value = newText;
+      handleEditorInput();
+      this.search();
+
+      showQuickNotification(`Replaced ${count} occurrences`);
+    }
+  };
+
+  // Expose global hooks for AppKit host
+  window.openFindBar = (showReplace) => FindReplaceController.open(showReplace);
+  window.findNext = () => FindReplaceController.next();
+  window.findPrevious = () => FindReplaceController.prev();
+  window.useSelectionForFind = () => {
+    const start = DOM.editorInput.selectionStart;
+    const end = DOM.editorInput.selectionEnd;
+    if (start !== end) {
+      const sel = DOM.editorInput.value.substring(start, end);
+      if (sel) {
+        DOM.findInput.value = sel;
+        FindReplaceController.open(false);
+      }
+    }
+  };
+
   // --- Keyboard Shortcuts & Smart Indentation ---
   function setupKeyboardShortcuts() {
     window.addEventListener('keydown', (e) => {
       const isMetaOrCtrl = e.metaKey || e.ctrlKey;
+
+      // Find: Cmd+F or Ctrl+F
+      if (isMetaOrCtrl && e.key.toLowerCase() === 'f' && !e.altKey && !e.shiftKey) {
+        e.preventDefault();
+        FindReplaceController.open(false);
+        return;
+      }
+
+      // Find & Replace: Cmd+Alt+F, Cmd+Option+F, or Cmd+H
+      if ((isMetaOrCtrl && e.altKey && e.key.toLowerCase() === 'f') ||
+          (isMetaOrCtrl && e.key.toLowerCase() === 'h')) {
+        e.preventDefault();
+        FindReplaceController.open(true);
+        return;
+      }
+
+      // Find Next: Cmd+G (without Shift)
+      if (isMetaOrCtrl && !e.shiftKey && e.key.toLowerCase() === 'g') {
+        e.preventDefault();
+        FindReplaceController.next();
+        return;
+      }
+
+      // Find Previous: Cmd+Shift+G
+      if (isMetaOrCtrl && e.shiftKey && e.key.toLowerCase() === 'g') {
+        e.preventDefault();
+        FindReplaceController.prev();
+        return;
+      }
+
+      // Close find bar on Escape if open
+      if (e.key === 'Escape' && FindReplaceController.isOpen) {
+        e.preventDefault();
+        FindReplaceController.close();
+        return;
+      }
 
       // Undo: Cmd+Z or Ctrl+Z (without Shift)
       if (isMetaOrCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
@@ -2274,6 +2586,7 @@ function calculateStats(markdownText) {
     setupFileHandling();
     setupKeyboardShortcuts();
     setupModals();
+    FindReplaceController.init();
   }
 
   // --- Init Application ---

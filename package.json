@@ -1,10 +1,13 @@
 {
   "name": "markdown-viewer",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Private, open-source, local-first Markdown viewer and editor with native macOS AppKit host, live GFM preview, LaTeX math, Mermaid diagrams, and PDF/HTML export.",
   "scripts": {
     "start": "npx serve -l 3000 .",
     "serve": "python3 -m http.server 3000",
+    "test": "./scripts/test_milestone1.sh && ./scripts/test_milestone2.sh",
+    "test:milestone1": "./scripts/test_milestone1.sh",
+    "test:milestone2": "./scripts/test_milestone2.sh",
     "build:macos": "./scripts/build_macos.sh",
     "uninstall:macos": "./scripts/uninstall_macos.sh",
     "generate:icon": "./scripts/generate_app_icon.sh",

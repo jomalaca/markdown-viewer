@@ -31,6 +31,11 @@ jobs:
           chmod +x scripts/test_milestone2.sh
           ./scripts/test_milestone2.sh
 
+      - name: Run Milestone 3 Preferences & Settings Tests
+        run: |
+          chmod +x scripts/test_milestone3.sh
+          ./scripts/test_milestone3.sh
+
       - name: Build macOS Application Bundle & Package Zip
         run: |
           chmod +x scripts/build_macos.sh

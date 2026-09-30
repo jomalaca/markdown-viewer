@@ -543,6 +543,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
         editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
         editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
         editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        editMenu.addItem(NSMenuItem.separator())
+        let findMenuItem = NSMenuItem(title: "Find", action: nil, keyEquivalent: "")
+        let findMenu = NSMenu(title: "Find")
+        let findItem = findMenu.addItem(withTitle: "Find…", action: #selector(menuFind), keyEquivalent: "f")
+        findItem.target = self
+        let findAndReplaceItem = findMenu.addItem(withTitle: "Find and Replace…", action: #selector(menuFindAndReplace), keyEquivalent: "f")
+        findAndReplaceItem.keyEquivalentModifierMask = [.command, .option]
+        findAndReplaceItem.target = self
+        let findNextItem = findMenu.addItem(withTitle: "Find Next", action: #selector(menuFindNext), keyEquivalent: "g")
+        findNextItem.target = self
+        let findPrevItem = findMenu.addItem(withTitle: "Find Previous", action: #selector(menuFindPrevious), keyEquivalent: "g")
+        findPrevItem.keyEquivalentModifierMask = [.command, .shift]
+        findPrevItem.target = self
+        let useSelectionItem = findMenu.addItem(withTitle: "Use Selection for Find", action: #selector(menuUseSelectionForFind), keyEquivalent: "e")
+        useSelectionItem.target = self
+        findMenuItem.submenu = findMenu
+        editMenu.addItem(findMenuItem)
         editMenuItem.submenu = editMenu
         mainMenu.addItem(editMenuItem)
 
@@ -625,6 +642,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
     @objc func menuRedo(_ sender: Any?) {
         webView.evaluateJavaScript("window.editorRedo ? window.editorRedo() : document.execCommand('redo');", completionHandler: nil)
     }
+
+    @objc func menuFind() { webView.evaluateJavaScript("window.openFindBar?.(false);", completionHandler: nil) }
+    @objc func menuFindAndReplace() { webView.evaluateJavaScript("window.openFindBar?.(true);", completionHandler: nil) }
+    @objc func menuFindNext() { webView.evaluateJavaScript("window.findNext?.();", completionHandler: nil) }
+    @objc func menuFindPrevious() { webView.evaluateJavaScript("window.findPrevious?.();", completionHandler: nil) }
+    @objc func menuUseSelectionForFind() { webView.evaluateJavaScript("window.useSelectionForFind?.();", completionHandler: nil) }
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         return true

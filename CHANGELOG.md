@@ -5,6 +5,21 @@ All notable changes to **Markdown Viewer** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-09-30
+
+### Added
+- **Find & Replace Toolbar**: Floating, non-modal search and replace bar positioned over the editor with match count indicators (`X of Y` or `No results`).
+- **Match Controls**: Added case-sensitive matching (`Aa`) and whole-word matching (`\b`) toggles.
+- **Search Navigation**: Keyboard and button navigation across search results with automatic line scrolling and textarea selection range highlighting.
+- **Replace & Replace All**: Single-match replacement and global batch replacement with native undo stack integration (`EditorHistory.push` and `document.execCommand`).
+- **Native macOS Menu Integration**: Added `Edit` -> `Find` submenu in AppKit with standard macOS shortcuts:
+  - `Find…` (<kbd>Cmd</kbd> + <kbd>F</kbd>)
+  - `Find and Replace…` (<kbd>Cmd</kbd> + <kbd>Option</kbd> + <kbd>F</kbd>)
+  - `Find Next` (<kbd>Cmd</kbd> + <kbd>G</kbd>)
+  - `Find Previous` (<kbd>Shift</kbd> + <kbd>Cmd</kbd> + <kbd>G</kbd>)
+  - `Use Selection for Find` (<kbd>Cmd</kbd> + <kbd>E</kbd>)
+- **Automated Milestone 2 Test Suite**: Added `scripts/test_milestone2.sh` validating HTML markup, CSS rules, JavaScript controller lifecycle, AppKit bridge bindings, and regex/replacement algorithmic accuracy.
+
 ---
 
 ## [1.1.2] - 2026-09-30

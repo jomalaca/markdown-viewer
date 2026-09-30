@@ -228,6 +228,44 @@
             </button>
           </div>
 
+          <!-- Floating Find & Replace Toolbar -->
+          <div class="find-replace-bar hidden" id="find-replace-bar" role="search" aria-label="Find and Replace">
+            <div class="find-row">
+              <button class="find-toggle-btn" id="find-replace-toggle-btn" title="Toggle Replace (Cmd+Option+F)" aria-label="Toggle Replace">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+              <div class="find-input-wrapper">
+                <input type="text" id="find-input" class="find-input" placeholder="Find..." autocomplete="off" spellcheck="false" />
+                <span class="find-count" id="find-count"></span>
+              </div>
+              <div class="find-options">
+                <button class="find-opt-btn" id="find-opt-case" title="Match Case" aria-pressed="false">Aa</button>
+                <button class="find-opt-btn" id="find-opt-word" title="Match Whole Word" aria-pressed="false">\b</button>
+              </div>
+              <div class="find-nav-buttons">
+                <button class="find-btn" id="find-prev-btn" title="Previous Match (Shift+Enter or Shift+Cmd+G)" aria-label="Previous Match">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+                </button>
+                <button class="find-btn" id="find-next-btn" title="Next Match (Enter or Cmd+G)" aria-label="Next Match">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <button class="find-btn find-close-btn" id="find-close-btn" title="Close (Escape)" aria-label="Close Find">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="replace-row hidden" id="replace-row">
+              <div class="replace-spacer"></div>
+              <div class="replace-input-wrapper">
+                <input type="text" id="replace-input" class="find-input" placeholder="Replace with..." autocomplete="off" spellcheck="false" />
+              </div>
+              <div class="replace-actions">
+                <button class="find-action-btn" id="replace-one-btn" title="Replace Current Match">Replace</button>
+                <button class="find-action-btn" id="replace-all-btn" title="Replace All Occurrences">Replace All</button>
+              </div>
+            </div>
+          </div>
+
           <!-- Editor Body with Line Numbers & Textarea -->
           <div class="editor-wrapper" id="editor-wrapper">
             <div class="line-numbers" id="line-numbers" aria-hidden="true">1</div>

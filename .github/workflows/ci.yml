@@ -26,6 +26,11 @@ jobs:
           chmod +x scripts/test_milestone1.sh
           ./scripts/test_milestone1.sh
 
+      - name: Run Milestone 2 Find & Replace Tests
+        run: |
+          chmod +x scripts/test_milestone2.sh
+          ./scripts/test_milestone2.sh
+
       - name: Build macOS Application Bundle & Package Zip
         run: |
           chmod +x scripts/build_macos.sh

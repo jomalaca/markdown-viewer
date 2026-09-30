@@ -74,9 +74,33 @@ codesign --force --deep --sign - "${APP_DIR}"
 echo "==> Packaging distribution zip..."
 (cd "${BUILD_DIR}" && zip -r -q -y "${DIST_DIR}/MarkdownViewer-macOS.zip" "Markdown Viewer.app")
 
+# 7. Generate Audit Build Manifest
+LOGS_DIR="${BUILD_DIR}/logs"
+mkdir -p "${LOGS_DIR}"
+GIT_COMMIT="$(git rev-parse HEAD 2>/dev/null || echo "unknown")"
+BUILD_TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+ZIP_SHA256="$(shasum -a 256 "${DIST_DIR}/MarkdownViewer-macOS.zip" | awk '{print $1}')"
+
+cat > "${LOGS_DIR}/build-manifest.json" << EOF
+{
+  "version": "${APP_VERSION}",
+  "gitCommit": "${GIT_COMMIT}",
+  "buildTimestamp": "${BUILD_TIMESTAMP}",
+  "distributionZip": {
+    "file": "MarkdownViewer-macOS.zip",
+    "sha256": "${ZIP_SHA256}"
+  },
+  "signing": {
+    "status": "ad-hoc signed",
+    "bundleId": "org.markdownviewer.app"
+  }
+}
+EOF
+
 echo ""
 echo "✓ Successfully built: ${APP_DIR}"
 echo "✓ Successfully packaged: ${DIST_DIR}/MarkdownViewer-macOS.zip"
+echo "✓ Generated audit manifest: ${LOGS_DIR}/build-manifest.json"
 echo ""
 echo "To run the GUI app directly:"
 echo "  open '${APP_DIR}'"

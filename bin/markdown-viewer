@@ -6,7 +6,7 @@
 
 set -e
 
-VERSION="1.1.1"
+VERSION="1.1.2"
 
 # Auto-close transient Terminal window if launched via LaunchServices ('open bin/markdown-viewer')
 cleanup_transient_terminal() {
@@ -77,7 +77,7 @@ fi
 
 # Case 1: Piped input from stdin (e.g. 'cat README.md | markdown-viewer')
 if [ ! -t 0 ]; then
-  TMP_FILE="/tmp/markdown-viewer-piped-$(date +%s)-$$.md"
+  TMP_FILE="$(mktemp -t markdown-viewer-piped.XXXXXX).md"
   cat > "${TMP_FILE}"
   "${OPEN_CMD}" "${OPEN_TARGET[@]}" "${TMP_FILE}"
   exit 0

@@ -500,6 +500,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
         let appMenu = NSMenu(title: "Markdown Viewer")
         appMenu.addItem(withTitle: "About Markdown Viewer", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(NSMenuItem.separator())
+        let settingsItem = appMenu.addItem(withTitle: "Settings…", action: #selector(menuOpenSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(withTitle: "Hide Markdown Viewer", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         let hideOthersItem = appMenu.addItem(withTitle: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
         hideOthersItem.keyEquivalentModifierMask = [.command, .option]
@@ -609,6 +612,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
     }
 
     // Menu Actions forwarded to JavaScript & Native Bridge
+    @objc func menuOpenSettings() { webView.evaluateJavaScript("window.openSettingsModal?.('tab-editor');", completionHandler: nil) }
     @objc func menuNewTab() { webView.evaluateJavaScript("document.getElementById('new-tab-btn')?.click()", completionHandler: nil) }
     @objc func menuCloseTab() { webView.evaluateJavaScript("document.querySelector('.tab-item.active .tab-close')?.click()", completionHandler: nil) }
     @objc func menuCloseWindow(_ sender: Any?) {

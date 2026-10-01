@@ -5,6 +5,19 @@ All notable changes to **Markdown Viewer** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-09-30
+
+### Added
+- **macOS Preferences & Settings Modal**: Comprehensive tabbed preferences sheet (<kbd>Cmd</kbd> + <kbd>,</kbd>) matching native macOS AppKit design standards with three dedicated categories:
+  - **Editor Tab**: Font family picker, dynamic font size slider (12px–24px) with live preview, tab indentation size selector (2 vs 4 spaces), line numbers toggle, soft word wrap toggle, and bracket/quote auto-closing toggle.
+  - **Viewer & Appearance Tab**: Default theme selector (7 color schemes), sync-scroll toggle, live LaTeX math (KaTeX) toggle, live Mermaid diagram toggle, and custom CSS override editor.
+  - **Keyboard Shortcuts Tab**: Searchable reference table of all application, editing, view mode, and formatting shortcuts with instant filtering.
+- **Native macOS App Menu**: Added `Settings…` (<kbd>Cmd</kbd> + <kbd>,</kbd>) to the main Application Menu (`Markdown Viewer -> Settings…`) wired to `window.openSettingsModal()`.
+- **Live Settings Application & Persistence**: All settings apply immediately in real-time across the editor and preview, persist in `localStorage`, and can be restored to defaults via `Reset to Defaults`.
+- **Automated Milestone 3 Test Suite**: Added `scripts/test_milestone3.sh` validating settings DOM components, CSS rules, controller hooks, AppKit menu bindings, and unit tests for indentation, auto-closing pairs, and shortcut filtering.
+
+---
+
 ## [1.2.0] - 2026-09-30
 
 ### Added

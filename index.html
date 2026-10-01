@@ -347,35 +347,133 @@
     </div>
   </div>
 
-  <!-- Settings & Custom CSS Modal -->
+  <!-- Settings & Preferences Modal -->
   <div class="modal-overlay" id="settings-modal" style="display: none;">
-    <div class="modal-container">
+    <div class="modal-container modal-settings">
       <div class="modal-header">
-        <h2>Editor &amp; Appearance Settings</h2>
-        <button class="modal-close" data-close="settings-modal">&times;</button>
+        <h2>Preferences</h2>
+        <button class="modal-close" data-close="settings-modal" aria-label="Close Settings">&times;</button>
       </div>
+
+      <!-- Settings Tab Bar -->
+      <div class="settings-tab-bar" role="tablist">
+        <button class="settings-tab-btn active" data-tab="tab-editor" role="tab" aria-selected="true">Editor</button>
+        <button class="settings-tab-btn" data-tab="tab-viewer" role="tab" aria-selected="false">Viewer &amp; Appearance</button>
+        <button class="settings-tab-btn" data-tab="tab-shortcuts" role="tab" aria-selected="false">Keyboard Shortcuts</button>
+      </div>
+
       <div class="modal-body">
-        <div class="form-group">
-          <label for="font-family-select">Editor &amp; Preview Font</label>
-          <select id="font-family-select" class="form-control">
-            <option value="system">System Default (Inter / San Francisco)</option>
-            <option value="serif">Editorial Serif (Merriweather / Georgia)</option>
-            <option value="mono">Monospace (JetBrains Mono / Menlo)</option>
-          </select>
+        <!-- Tab 1: Editor Settings -->
+        <div class="settings-tab-pane active" id="tab-editor" role="tabpanel">
+          <div class="form-group">
+            <label for="font-family-select">Editor Font Family</label>
+            <select id="font-family-select" class="form-control">
+              <option value="system">System Default (Inter / San Francisco)</option>
+              <option value="serif">Editorial Serif (Merriweather / Georgia)</option>
+              <option value="mono">Monospace (JetBrains Mono / Menlo)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="font-size-input">Base Font Size: <span id="font-size-val">15px</span></label>
+            <input type="range" id="font-size-input" min="12" max="24" value="15" class="form-range" />
+          </div>
+          <div class="form-group">
+            <label for="tab-size-select">Tab Indentation Size</label>
+            <select id="tab-size-select" class="form-control">
+              <option value="2">2 spaces</option>
+              <option value="4">4 spaces</option>
+            </select>
+          </div>
+          <div class="form-group-checkbox">
+            <input type="checkbox" id="line-numbers-toggle" checked />
+            <label for="line-numbers-toggle">Show Line Numbers in Editor</label>
+          </div>
+          <div class="form-group-checkbox">
+            <input type="checkbox" id="word-wrap-toggle" checked />
+            <label for="word-wrap-toggle">Enable Soft Word Wrap</label>
+          </div>
+          <div class="form-group-checkbox">
+            <input type="checkbox" id="auto-close-pairs-toggle" checked />
+            <label for="auto-close-pairs-toggle">Automatically Close Quotes and Brackets</label>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="font-size-input">Base Font Size: <span id="font-size-val">15px</span></label>
-          <input type="range" id="font-size-input" min="12" max="22" value="15" class="form-range" />
+
+        <!-- Tab 2: Viewer & Appearance Settings -->
+        <div class="settings-tab-pane hidden" id="tab-viewer" role="tabpanel">
+          <div class="form-group">
+            <label for="default-theme-select">Default Theme</label>
+            <select id="default-theme-select" class="form-control">
+              <option value="github-light">GitHub Light</option>
+              <option value="github-dark">GitHub Dark</option>
+              <option value="sepia">Sepia (Warm)</option>
+              <option value="solarized-dark">Solarized Dark</option>
+              <option value="nord">Nord Frost</option>
+              <option value="dracula">Dracula</option>
+              <option value="high-contrast">High Contrast</option>
+            </select>
+          </div>
+          <div class="form-group-checkbox">
+            <input type="checkbox" id="sync-scroll-toggle" checked />
+            <label for="sync-scroll-toggle">Synchronize Editor &amp; Preview Scrolling</label>
+          </div>
+          <div class="form-group-checkbox">
+            <input type="checkbox" id="render-math-toggle" checked />
+            <label for="render-math-toggle">Render LaTeX Math Formulas (KaTeX)</label>
+          </div>
+          <div class="form-group-checkbox">
+            <input type="checkbox" id="render-mermaid-toggle" checked />
+            <label for="render-mermaid-toggle">Render Mermaid Flowcharts &amp; Diagrams</label>
+          </div>
+          <div class="form-group">
+            <label for="custom-css-input">Custom CSS Overrides</label>
+            <p class="form-hint">Inject CSS rules to customize preview styles, fonts, or print output.</p>
+            <textarea id="custom-css-input" class="form-control code-textarea" rows="4" placeholder="/* Custom preview CSS */&#10;.markdown-rendered h1 { color: #0969da; }"></textarea>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="custom-css-input">Custom CSS Overrides</label>
-          <p class="form-hint">Inject custom CSS to personalize the rendered preview or print styles.</p>
-          <textarea id="custom-css-input" class="form-control code-textarea" rows="6" placeholder="/* Custom CSS for preview pane */&#10;.markdown-rendered h1 { border-bottom: 2px solid #0969da; }"></textarea>
+
+        <!-- Tab 3: Keyboard Shortcuts Cheatsheet -->
+        <div class="settings-tab-pane hidden" id="tab-shortcuts" role="tabpanel">
+          <div class="shortcuts-search-wrapper">
+            <input type="text" id="shortcuts-filter" class="form-control" placeholder="Filter shortcuts..." autocomplete="off" />
+          </div>
+          <div class="shortcuts-table-container">
+            <table class="cheatsheet-table" id="shortcuts-table">
+              <thead>
+                <tr><th>Action</th><th>macOS Shortcut</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Open Settings</td><td><kbd>Cmd</kbd> + <kbd>,</kbd></td></tr>
+                <tr><td>New Document Tab</td><td><kbd>Cmd</kbd> + <kbd>T</kbd></td></tr>
+                <tr><td>Open File</td><td><kbd>Cmd</kbd> + <kbd>O</kbd></td></tr>
+                <tr><td>Save Document</td><td><kbd>Cmd</kbd> + <kbd>S</kbd></td></tr>
+                <tr><td>Save As…</td><td><kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd></td></tr>
+                <tr><td>Close Current Tab</td><td><kbd>Cmd</kbd> + <kbd>W</kbd></td></tr>
+                <tr><td>Next Tab / Previous Tab</td><td><kbd>Ctrl</kbd> + <kbd>Tab</kbd> / <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Tab</kbd></td></tr>
+                <tr><td>Find in Document</td><td><kbd>Cmd</kbd> + <kbd>F</kbd></td></tr>
+                <tr><td>Find and Replace</td><td><kbd>Cmd</kbd> + <kbd>Option</kbd> + <kbd>F</kbd> / <kbd>Cmd</kbd> + <kbd>H</kbd></td></tr>
+                <tr><td>Find Next / Previous Match</td><td><kbd>Cmd</kbd> + <kbd>G</kbd> / <kbd>Shift</kbd> + <kbd>Cmd</kbd> + <kbd>G</kbd></td></tr>
+                <tr><td>Use Selection for Find</td><td><kbd>Cmd</kbd> + <kbd>E</kbd></td></tr>
+                <tr><td>Undo / Redo</td><td><kbd>Cmd</kbd> + <kbd>Z</kbd> / <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></td></tr>
+                <tr><td>Split View Mode</td><td><kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd></td></tr>
+                <tr><td>Editor Only View Mode</td><td><kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd></td></tr>
+                <tr><td>Preview Only View Mode</td><td><kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd></td></tr>
+                <tr><td>Toggle Sidebar Outline</td><td><kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd></td></tr>
+                <tr><td>Bold Selection</td><td><kbd>Cmd</kbd> + <kbd>B</kbd></td></tr>
+                <tr><td>Italic Selection</td><td><kbd>Cmd</kbd> + <kbd>I</kbd></td></tr>
+                <tr><td>Insert Link</td><td><kbd>Cmd</kbd> + <kbd>K</kbd></td></tr>
+                <tr><td>Zoom In / Out / Reset</td><td><kbd>Cmd</kbd> + <kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd></td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-close="settings-modal">Cancel</button>
-        <button class="btn btn-primary" id="save-settings-btn">Save Settings</button>
+
+      <div class="modal-footer modal-footer-split">
+        <button class="btn btn-secondary btn-reset-defaults" id="reset-settings-btn" title="Restore Default Settings">Reset to Defaults</button>
+        <div class="modal-footer-actions">
+          <button class="btn btn-secondary" data-close="settings-modal">Cancel</button>
+          <button class="btn btn-primary" id="save-settings-btn">Save Changes</button>
+        </div>
       </div>
     </div>
   </div>

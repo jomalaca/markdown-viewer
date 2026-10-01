@@ -110,7 +110,14 @@ function calculateStats(markdownText) {
     customCss: '',
     sidebarOpen: true,
     isEditorScrolling: false,
-    isPreviewScrolling: false
+    isPreviewScrolling: false,
+    tabSize: 2,
+    lineNumbers: true,
+    wordWrap: true,
+    autoClosePairs: true,
+    renderMath: true,
+    renderMermaid: true,
+    defaultTheme: 'github-light'
   };
 
   // --- DOM Elements ---
@@ -155,6 +162,19 @@ function calculateStats(markdownText) {
     fontFamilySelect: document.getElementById('font-family-select'),
     fontSizeInput: document.getElementById('font-size-input'),
     fontSizeVal: document.getElementById('font-size-val'),
+    tabSizeSelect: document.getElementById('tab-size-select'),
+    lineNumbersToggle: document.getElementById('line-numbers-toggle'),
+    wordWrapToggle: document.getElementById('word-wrap-toggle'),
+    autoClosePairsToggle: document.getElementById('auto-close-pairs-toggle'),
+    defaultThemeSelect: document.getElementById('default-theme-select'),
+    syncScrollToggle: document.getElementById('sync-scroll-toggle'),
+    renderMathToggle: document.getElementById('render-math-toggle'),
+    renderMermaidToggle: document.getElementById('render-mermaid-toggle'),
+    resetSettingsBtn: document.getElementById('reset-settings-btn'),
+    shortcutsFilter: document.getElementById('shortcuts-filter'),
+    shortcutsTable: document.getElementById('shortcuts-table'),
+    settingsTabBar: document.querySelectorAll('.settings-tab-btn'),
+    settingsTabPanes: document.querySelectorAll('.settings-tab-pane'),
     customCssInput: document.getElementById('custom-css-input'),
     openCheatsheetBtn: document.getElementById('open-cheatsheet-btn'),
     cheatsheetModal: document.getElementById('cheatsheet-modal'),
@@ -206,6 +226,9 @@ function calculateStats(markdownText) {
 
   // --- Math Processing Helper (KaTeX) ---
   function processMath(markdownText) {
+    if (state.renderMath === false) {
+      return { text: markdownText, mathBlocks: [] };
+    }
     const mathBlocks = [];
 
     // Replace display math $$...$$
@@ -741,7 +764,7 @@ function calculateStats(markdownText) {
       let code = (typeof arg1 === 'object' && arg1 !== null) ? arg1.text : arg1;
       const infostring = (typeof arg1 === 'object' && arg1 !== null) ? arg1.lang : arg2;
       const lang = (infostring || '').trim().toLowerCase();
-      if (lang === 'mermaid') {
+      if (lang === 'mermaid' && state.renderMermaid !== false) {
         const id = `mermaid-diagram-${++mermaidCounter}`;
         return `<div class="mermaid-diagram-wrapper"><div class="mermaid" id="${id}">${escapeHtml(code)}</div></div>`;
       }
@@ -1447,6 +1470,13 @@ function calculateStats(markdownText) {
       localStorage.setItem('mv_font_family', state.fontFamily);
       localStorage.setItem('mv_font_size', String(state.fontSize));
       localStorage.setItem('mv_custom_css', state.customCss);
+      localStorage.setItem('mv_tab_size', String(state.tabSize || 2));
+      localStorage.setItem('mv_line_numbers', String(state.lineNumbers !== false));
+      localStorage.setItem('mv_word_wrap', String(state.wordWrap !== false));
+      localStorage.setItem('mv_auto_close_pairs', String(state.autoClosePairs !== false));
+      localStorage.setItem('mv_render_math', String(state.renderMath !== false));
+      localStorage.setItem('mv_render_mermaid', String(state.renderMermaid !== false));
+      localStorage.setItem('mv_default_theme', state.defaultTheme || state.theme);
     } catch (e) {
       console.warn('LocalStorage save failed:', e);
     }
@@ -1463,6 +1493,13 @@ function calculateStats(markdownText) {
       const savedFontFamily = localStorage.getItem('mv_font_family');
       const savedFontSize = localStorage.getItem('mv_font_size');
       const savedCustomCss = localStorage.getItem('mv_custom_css');
+      const savedTabSize = localStorage.getItem('mv_tab_size');
+      const savedLineNumbers = localStorage.getItem('mv_line_numbers');
+      const savedWordWrap = localStorage.getItem('mv_word_wrap');
+      const savedAutoClose = localStorage.getItem('mv_auto_close_pairs');
+      const savedRenderMath = localStorage.getItem('mv_render_math');
+      const savedRenderMermaid = localStorage.getItem('mv_render_mermaid');
+      const savedDefaultTheme = localStorage.getItem('mv_default_theme');
 
       if (savedDocs) {
         state.tabs = JSON.parse(savedDocs);
@@ -1495,6 +1532,14 @@ function calculateStats(markdownText) {
       if (savedView) setViewMode(savedView);
       if (savedFontFamily) applyFontFamily(savedFontFamily);
       if (savedFontSize) applyFontSize(parseInt(savedFontSize, 10));
+      if (savedCustomCss) applyCustomCss(savedCustomCss);
+      if (savedTabSize) applyTabSize(savedTabSize);
+      if (savedLineNumbers !== null) applyLineNumbers(savedLineNumbers === 'true');
+      if (savedWordWrap !== null) applyWordWrap(savedWordWrap === 'true');
+      if (savedAutoClose !== null) applyAutoClosePairs(savedAutoClose === 'true');
+      if (savedRenderMath !== null) state.renderMath = (savedRenderMath === 'true');
+      if (savedRenderMermaid !== null) state.renderMermaid = (savedRenderMermaid === 'true');
+      if (savedDefaultTheme) state.defaultTheme = savedDefaultTheme;
       if (savedCustomCss) applyCustomCss(savedCustomCss);
 
       // 3. Disk auto-recovery check: if any restored tab has a filePath on disk but its content is empty, reload it from disk
@@ -1777,6 +1822,64 @@ function calculateStats(markdownText) {
     state.customCss = css;
     DOM.injectedCustomCss.textContent = css;
     DOM.customCssInput.value = css;
+  }
+
+  function applyTabSize(size) {
+    const val = parseInt(size, 10) || 2;
+    state.tabSize = val;
+    document.documentElement.style.setProperty('--editor-tab-size', val);
+    if (DOM.editorInput) {
+      DOM.editorInput.style.tabSize = val;
+    }
+    if (DOM.tabSizeSelect) {
+      DOM.tabSizeSelect.value = String(val);
+    }
+  }
+
+  function applyLineNumbers(show) {
+    state.lineNumbers = !!show;
+    if (DOM.editorWrapper) {
+      DOM.editorWrapper.classList.toggle('hide-line-numbers', !state.lineNumbers);
+    }
+    if (DOM.lineNumbers) {
+      DOM.lineNumbers.style.display = state.lineNumbers ? '' : 'none';
+    }
+    if (DOM.lineNumbersToggle) {
+      DOM.lineNumbersToggle.checked = state.lineNumbers;
+    }
+  }
+
+  function applyWordWrap(wrap) {
+    state.wordWrap = !!wrap;
+    if (DOM.editorInput) {
+      DOM.editorInput.classList.toggle('no-word-wrap', !state.wordWrap);
+    }
+    if (DOM.wordWrapToggle) {
+      DOM.wordWrapToggle.checked = state.wordWrap;
+    }
+  }
+
+  function applyAutoClosePairs(enable) {
+    state.autoClosePairs = !!enable;
+    if (DOM.autoClosePairsToggle) {
+      DOM.autoClosePairsToggle.checked = state.autoClosePairs;
+    }
+  }
+
+  function applyRenderMath(enable) {
+    state.renderMath = !!enable;
+    if (DOM.renderMathToggle) {
+      DOM.renderMathToggle.checked = state.renderMath;
+    }
+    renderMarkdown();
+  }
+
+  function applyRenderMermaid(enable) {
+    state.renderMermaid = !!enable;
+    if (DOM.renderMermaidToggle) {
+      DOM.renderMermaidToggle.checked = state.renderMermaid;
+    }
+    renderMarkdown();
   }
 
   // --- File Open & Drag-and-Drop ---
@@ -2404,6 +2507,13 @@ function calculateStats(markdownText) {
         setViewMode('preview');
         return;
       }
+
+      // Preferences / Settings: Cmd+, or Ctrl+,
+      if (isMetaOrCtrl && e.key === ',') {
+        e.preventDefault();
+        SettingsController.open('tab-editor');
+        return;
+      }
     });
 
     // Smart pair auto-closing & Tab indentation in textarea
@@ -2415,60 +2525,189 @@ function calculateStats(markdownText) {
 
         EditorHistory.push(DOM.editorInput.value, start, end, true);
 
-        // Insert 2 spaces
-        DOM.editorInput.value = DOM.editorInput.value.substring(0, start) + '  ' + DOM.editorInput.value.substring(end);
-        DOM.editorInput.setSelectionRange(start + 2, start + 2);
+        // Insert configured tab spaces
+        const tabSpaces = ' '.repeat(state.tabSize || 2);
+        DOM.editorInput.value = DOM.editorInput.value.substring(0, start) + tabSpaces + DOM.editorInput.value.substring(end);
+        DOM.editorInput.setSelectionRange(start + tabSpaces.length, start + tabSpaces.length);
         handleEditorInput();
 
-        EditorHistory.push(DOM.editorInput.value, start + 2, start + 2, true);
+        EditorHistory.push(DOM.editorInput.value, start + tabSpaces.length, start + tabSpaces.length, true);
+        return;
       }
 
       // Auto-closing brackets & quotes
-      const pairs = { '(': ')', '[': ']', '{': '}', '`': '`', '"': '"' };
-      if (pairs[e.key] && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        const start = DOM.editorInput.selectionStart;
-        const end = DOM.editorInput.selectionEnd;
-        if (start !== end) {
-          e.preventDefault();
-          EditorHistory.push(DOM.editorInput.value, start, end, true);
+      if (state.autoClosePairs !== false) {
+        const pairs = { '(': ')', '[': ']', '{': '}', '`': '`', '"': '"' };
+        if (pairs[e.key] && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          const start = DOM.editorInput.selectionStart;
+          const end = DOM.editorInput.selectionEnd;
+          if (start !== end) {
+            e.preventDefault();
+            EditorHistory.push(DOM.editorInput.value, start, end, true);
 
-          const selected = DOM.editorInput.value.substring(start, end);
-          const closed = e.key + selected + pairs[e.key];
-          DOM.editorInput.value = DOM.editorInput.value.substring(0, start) + closed + DOM.editorInput.value.substring(end);
-          DOM.editorInput.setSelectionRange(start + 1, end + 1);
-          handleEditorInput();
+            const selected = DOM.editorInput.value.substring(start, end);
+            const closed = e.key + selected + pairs[e.key];
+            DOM.editorInput.value = DOM.editorInput.value.substring(0, start) + closed + DOM.editorInput.value.substring(end);
+            DOM.editorInput.setSelectionRange(start + 1, end + 1);
+            handleEditorInput();
 
-          EditorHistory.push(DOM.editorInput.value, start + 1, end + 1, true);
+            EditorHistory.push(DOM.editorInput.value, start + 1, end + 1, true);
+          }
         }
       }
     });
   }
 
+  // --- Settings Controller ---
+  const SettingsController = {
+    open(tabId = 'tab-editor') {
+      this.populateForm();
+      this.switchTab(tabId);
+      if (DOM.settingsModal) DOM.settingsModal.style.display = 'flex';
+    },
+
+    close() {
+      if (DOM.settingsModal) DOM.settingsModal.style.display = 'none';
+    },
+
+    switchTab(tabId) {
+      if (DOM.settingsTabBar) {
+        DOM.settingsTabBar.forEach(btn => {
+          const isActive = btn.dataset.tab === tabId;
+          btn.classList.toggle('active', isActive);
+          btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+      }
+      if (DOM.settingsTabPanes) {
+        DOM.settingsTabPanes.forEach(pane => {
+          pane.classList.toggle('hidden', pane.id !== tabId);
+          pane.classList.toggle('active', pane.id === tabId);
+        });
+      }
+    },
+
+    populateForm() {
+      if (DOM.fontFamilySelect) DOM.fontFamilySelect.value = state.fontFamily;
+      if (DOM.fontSizeInput) {
+        DOM.fontSizeInput.value = state.fontSize;
+        if (DOM.fontSizeVal) DOM.fontSizeVal.textContent = `${state.fontSize}px`;
+      }
+      if (DOM.tabSizeSelect) DOM.tabSizeSelect.value = String(state.tabSize || 2);
+      if (DOM.lineNumbersToggle) DOM.lineNumbersToggle.checked = state.lineNumbers !== false;
+      if (DOM.wordWrapToggle) DOM.wordWrapToggle.checked = state.wordWrap !== false;
+      if (DOM.autoClosePairsToggle) DOM.autoClosePairsToggle.checked = state.autoClosePairs !== false;
+
+      if (DOM.defaultThemeSelect) DOM.defaultThemeSelect.value = state.defaultTheme || state.theme;
+      if (DOM.syncScrollToggle) DOM.syncScrollToggle.checked = state.syncScroll !== false;
+      if (DOM.renderMathToggle) DOM.renderMathToggle.checked = state.renderMath !== false;
+      if (DOM.renderMermaidToggle) DOM.renderMermaidToggle.checked = state.renderMermaid !== false;
+      if (DOM.customCssInput) DOM.customCssInput.value = state.customCss || '';
+    },
+
+    save() {
+      if (DOM.fontFamilySelect) applyFontFamily(DOM.fontFamilySelect.value);
+      if (DOM.fontSizeInput) applyFontSize(parseInt(DOM.fontSizeInput.value, 10));
+      if (DOM.tabSizeSelect) applyTabSize(DOM.tabSizeSelect.value);
+      if (DOM.lineNumbersToggle) applyLineNumbers(DOM.lineNumbersToggle.checked);
+      if (DOM.wordWrapToggle) applyWordWrap(DOM.wordWrapToggle.checked);
+      if (DOM.autoClosePairsToggle) applyAutoClosePairs(DOM.autoClosePairsToggle.checked);
+
+      if (DOM.defaultThemeSelect) {
+        state.defaultTheme = DOM.defaultThemeSelect.value;
+        applyTheme(state.defaultTheme);
+      }
+      if (DOM.syncScrollToggle) setSyncScroll(DOM.syncScrollToggle.checked);
+      if (DOM.renderMathToggle) applyRenderMath(DOM.renderMathToggle.checked);
+      if (DOM.renderMermaidToggle) applyRenderMermaid(DOM.renderMermaidToggle.checked);
+      if (DOM.customCssInput) applyCustomCss(DOM.customCssInput.value);
+
+      this.close();
+      saveToStorage();
+      showQuickNotification('Settings saved');
+    },
+
+    resetDefaults() {
+      applyFontFamily('system');
+      applyFontSize(15);
+      applyTabSize(2);
+      applyLineNumbers(true);
+      applyWordWrap(true);
+      applyAutoClosePairs(true);
+      state.defaultTheme = 'github-light';
+      applyTheme('github-light');
+      setSyncScroll(true);
+      applyRenderMath(true);
+      applyRenderMermaid(true);
+      applyCustomCss('');
+
+      this.populateForm();
+      saveToStorage();
+      showQuickNotification('Settings reset to defaults');
+    },
+
+    filterShortcuts(query) {
+      const q = (query || '').toLowerCase().trim();
+      const rows = DOM.shortcutsTable?.querySelectorAll('tbody tr') || [];
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+      });
+    },
+
+    init() {
+      if (!DOM.settingsModal) return;
+
+      if (DOM.openSettingsBtn) {
+        DOM.openSettingsBtn.addEventListener('click', () => this.open('tab-editor'));
+      }
+      if (DOM.saveSettingsBtn) {
+        DOM.saveSettingsBtn.addEventListener('click', () => this.save());
+      }
+      if (DOM.resetSettingsBtn) {
+        DOM.resetSettingsBtn.addEventListener('click', () => this.resetDefaults());
+      }
+
+      if (DOM.settingsTabBar) {
+        DOM.settingsTabBar.forEach(btn => {
+          btn.addEventListener('click', () => {
+            this.switchTab(btn.dataset.tab);
+          });
+        });
+      }
+
+      if (DOM.fontSizeInput) {
+        DOM.fontSizeInput.addEventListener('input', () => {
+          if (DOM.fontSizeVal) DOM.fontSizeVal.textContent = `${DOM.fontSizeInput.value}px`;
+        });
+      }
+
+      if (DOM.shortcutsFilter) {
+        DOM.shortcutsFilter.addEventListener('input', (e) => {
+          this.filterShortcuts(e.target.value);
+        });
+      }
+
+      // Close on cancel buttons or modal overlay click
+      const closeBtns = DOM.settingsModal.querySelectorAll('[data-close="settings-modal"]');
+      closeBtns.forEach(btn => {
+        btn.addEventListener('click', () => this.close());
+      });
+    }
+  };
+
+  // Expose global hook for AppKit host
+  window.openSettingsModal = (tabId) => SettingsController.open(tabId);
+
   // --- Modals Setup ---
   function setupModals() {
-    // Open Settings
-    DOM.openSettingsBtn.addEventListener('click', () => {
-      DOM.settingsModal.style.display = 'flex';
-    });
+    SettingsController.init();
 
-    // Save Settings
-    DOM.saveSettingsBtn.addEventListener('click', () => {
-      applyFontFamily(DOM.fontFamilySelect.value);
-      applyFontSize(parseInt(DOM.fontSizeInput.value, 10));
-      applyCustomCss(DOM.customCssInput.value);
-      DOM.settingsModal.style.display = 'none';
-      saveToStorage();
-    });
-
-    // Font size live preview in modal
-    DOM.fontSizeInput.addEventListener('input', () => {
-      DOM.fontSizeVal.textContent = `${DOM.fontSizeInput.value}px`;
-    });
-
-    // Open Cheatsheet
-    DOM.openCheatsheetBtn.addEventListener('click', () => {
-      DOM.cheatsheetModal.style.display = 'flex';
-    });
+    // Open Cheatsheet (redirect to Shortcuts tab)
+    if (DOM.openCheatsheetBtn) {
+      DOM.openCheatsheetBtn.addEventListener('click', () => {
+        SettingsController.open('tab-shortcuts');
+      });
+    }
 
     // Confirm Close Tab modal actions
     if (DOM.confirmCloseCancel) {

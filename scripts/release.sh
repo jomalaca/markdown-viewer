@@ -33,6 +33,8 @@ echo " Preparing Release: ${TAG} (SemVer: ${VERSION})"
 echo "=========================================================="
 
 # 2. Pre-flight checks
+cd "${PROJECT_ROOT}"
+git update-index -q --refresh || true
 if ! git diff-index --quiet HEAD --; then
   echo "Error: Your working tree has uncommitted changes. Please commit or stash them first." >&2
   git status --short

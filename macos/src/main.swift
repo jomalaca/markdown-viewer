@@ -594,6 +594,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
         viewMenu.addItem(NSMenuItem.separator())
         let outlineItem = viewMenu.addItem(withTitle: "Toggle Outline", action: #selector(menuToggleOutline), keyEquivalent: "o")
         outlineItem.keyEquivalentModifierMask = [.command, .shift]
+        let fullWidthItem = viewMenu.addItem(withTitle: "Toggle Full Width Preview", action: #selector(menuToggleFullWidth), keyEquivalent: "w")
+        fullWidthItem.keyEquivalentModifierMask = [.command, .shift]
         viewMenu.addItem(NSMenuItem.separator())
         viewMenu.addItem(withTitle: "Actual Size", action: #selector(menuResetZoom), keyEquivalent: "0")
         viewMenu.addItem(withTitle: "Zoom In", action: #selector(menuZoomIn), keyEquivalent: "=")
@@ -645,6 +647,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
     @objc func menuViewSplit() { webView.evaluateJavaScript("document.getElementById('view-mode-split')?.click()", completionHandler: nil) }
     @objc func menuViewPreview() { webView.evaluateJavaScript("document.getElementById('view-mode-preview')?.click()", completionHandler: nil) }
     @objc func menuToggleOutline() { webView.evaluateJavaScript("document.getElementById('toggle-sidebar-btn')?.click()", completionHandler: nil) }
+    @objc func menuToggleFullWidth() { webView.evaluateJavaScript("document.getElementById('toggle-full-width')?.click()", completionHandler: nil) }
+
 
     @objc func menuNextTab() { webView.evaluateJavaScript("window.cycleTab?.(1);", completionHandler: nil) }
     @objc func menuPrevTab() { webView.evaluateJavaScript("window.cycleTab?.(-1);", completionHandler: nil) }

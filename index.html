@@ -165,6 +165,9 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
+        <div class="outline-search-wrapper">
+          <input type="text" id="outline-filter-input" placeholder="Filter sections..." class="outline-filter-input" autocomplete="off" />
+        </div>
         <nav class="outline-nav" id="outline-nav">
           <p class="outline-empty">Add headings (H1-H6) to see the table of contents here.</p>
         </nav>
@@ -289,6 +292,10 @@
           <div class="preview-header">
             <div class="preview-title"></div>
             <div class="preview-actions">
+              <button id="toggle-full-width" class="tool-btn-small" title="Toggle Full Width Preview (Cmd+Shift+W)" aria-label="Toggle Full Width">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                <span>Full Width</span>
+              </button>
               <button id="quick-copy-html" class="tool-btn-small" title="Copy rendered HTML">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                 <span>Copy HTML</span>
@@ -419,6 +426,10 @@
             <input type="checkbox" id="render-mermaid-toggle" checked />
             <label for="render-mermaid-toggle">Render Mermaid Flowcharts &amp; Diagrams</label>
           </div>
+          <div class="form-group-checkbox">
+            <input type="checkbox" id="full-width-toggle" />
+            <label for="full-width-toggle">Full-Width Preview Layout (Extend text to full window width)</label>
+          </div>
           <div class="form-group">
             <label for="custom-css-input">Custom CSS Overrides</label>
             <p class="form-hint">Inject CSS rules to customize preview styles, fonts, or print output.</p>
@@ -452,6 +463,7 @@
                 <tr><td>Split View Mode</td><td><kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd></td></tr>
                 <tr><td>Editor Only View Mode</td><td><kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd></td></tr>
                 <tr><td>Preview Only View Mode</td><td><kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd></td></tr>
+                <tr><td>Toggle Full Width Preview</td><td><kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>W</kbd></td></tr>
                 <tr><td>Toggle Sidebar Outline</td><td><kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd></td></tr>
                 <tr><td>Bold Selection</td><td><kbd>Cmd</kbd> + <kbd>B</kbd></td></tr>
                 <tr><td>Italic Selection</td><td><kbd>Cmd</kbd> + <kbd>I</kbd></td></tr>

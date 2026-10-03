@@ -917,6 +917,9 @@ function calculateStats(markdownText) {
 
     // Update Document Outline
     updateOutline();
+
+    // Dynamically update document title from first header
+    updateDocumentTitle();
   }
 
   // --- Interactive Checkboxes ---
@@ -1019,6 +1022,47 @@ function calculateStats(markdownText) {
     const col = pos - textBefore.lastIndexOf('\n');
     DOM.cursorPos.textContent = `Ln ${line}, Col ${col}`;
   }
+
+  // --- Dynamic Document Title Extraction (from # First Header or YAML frontmatter) ---
+  function getDocumentDisplayTitle(content, fallbackTitle) {
+    if (!content || typeof content !== 'string') return fallbackTitle || 'Untitled';
+
+    // 1. Check YAML frontmatter for title:
+    const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+    if (frontmatterMatch) {
+      const yamlContent = frontmatterMatch[1];
+      const titleMatch = yamlContent.match(/(?:^|\n)\s*title\s*:\s*["']?([^"'\n\r]+)["']?/i);
+      if (titleMatch && titleMatch[1].trim()) {
+        return titleMatch[1].trim();
+      }
+    }
+
+    // 2. Check first Markdown header: # Heading
+    const lines = content.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('#')) {
+        const headerText = trimmed.replace(/^#+\s*/, '').trim();
+        if (headerText) {
+          return headerText;
+        }
+      }
+    }
+
+    return fallbackTitle || 'Untitled';
+  }
+
+  function updateDocumentTitle() {
+    const activeTab = state.tabs.find(t => t.id === state.activeTabId);
+    const content = activeTab ? (DOM.editorInput ? DOM.editorInput.value : activeTab.content) : '';
+    const fallback = activeTab ? (activeTab.title || 'Untitled') : 'Markdown Viewer';
+    const displayTitle = getDocumentDisplayTitle(content, fallback);
+    document.title = displayTitle;
+    return displayTitle;
+  }
+
+  window.getDocumentDisplayTitle = getDocumentDisplayTitle;
+  window.updateDocumentTitle = updateDocumentTitle;
 
   // --- Synchronized Scrolling ---
   function setupSyncScroll() {
@@ -1844,6 +1888,7 @@ function calculateStats(markdownText) {
   function applyTheme(themeKey) {
     if (!THEME_NAMES[themeKey]) themeKey = 'github-light';
     state.theme = themeKey;
+    state.defaultTheme = themeKey;
     document.documentElement.setAttribute('data-theme', themeKey);
     DOM.currentThemeName.textContent = THEME_NAMES[themeKey];
 
@@ -1851,6 +1896,10 @@ function calculateStats(markdownText) {
       const themeVal = opt.dataset.targetTheme || opt.dataset.theme;
       opt.classList.toggle('active', themeVal === themeKey);
     });
+
+    if (DOM.defaultThemeSelect) {
+      DOM.defaultThemeSelect.value = themeKey;
+    }
 
     // Update highlight.js theme stylesheet (100% offline & local)
     if (DOM.hljsThemeLink) {
@@ -2047,7 +2096,8 @@ function calculateStats(markdownText) {
       ALLOWED_URI_REGEXP: /^(?:(?:(?:https?|mailto|tel)):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
       ADD_DATA_URI_TAGS: ['img']
     }) : rawContent;
-    const title = currentTab.title.replace(/\.md$/i, '');
+    const activeContent = currentTab.content || (DOM.editorInput ? DOM.editorInput.value : '');
+    const title = getDocumentDisplayTitle(activeContent, currentTab.title.replace(/\.md$/i, ''));
     const cleanCustomCss = sanitizeCustomCss(state.customCss || '');
 
     const fullHtml = `<!DOCTYPE html>
@@ -2136,11 +2186,16 @@ function calculateStats(markdownText) {
 
     DOM.exportPdf.addEventListener('click', () => {
       DOM.exportDropdown.classList.remove('open');
+      const docTitle = updateDocumentTitle();
       if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nativeApp) {
-        window.webkit.messageHandlers.nativeApp.postMessage({ action: 'print' });
+        window.webkit.messageHandlers.nativeApp.postMessage({ action: 'print', title: docTitle });
       } else {
         window.print();
       }
+    });
+
+    window.addEventListener('beforeprint', () => {
+      updateDocumentTitle();
     });
 
     DOM.copyHtml.addEventListener('click', () => {
@@ -2639,17 +2694,23 @@ function calculateStats(markdownText) {
 
   // --- Settings Controller ---
   const SettingsController = {
+    currentTab: 'tab-editor',
+
     open(tabId = 'tab-editor') {
       this.populateForm();
       this.switchTab(tabId);
+      this.updateLivePreview();
       if (DOM.settingsModal) DOM.settingsModal.style.display = 'flex';
     },
 
     close() {
+      const liveCssEl = document.getElementById('settings-live-preview-css');
+      if (liveCssEl) liveCssEl.textContent = '';
       if (DOM.settingsModal) DOM.settingsModal.style.display = 'none';
     },
 
     switchTab(tabId) {
+      this.currentTab = tabId;
       if (DOM.settingsTabBar) {
         DOM.settingsTabBar.forEach(btn => {
           const isActive = btn.dataset.tab === tabId;
@@ -2663,6 +2724,24 @@ function calculateStats(markdownText) {
           pane.classList.toggle('active', pane.id === tabId);
         });
       }
+
+      // Hide live preview on shortcuts tab, show on editor & viewer tabs
+      const previewSec = document.getElementById('settings-preview-section');
+      if (previewSec) {
+        previewSec.style.display = tabId === 'tab-shortcuts' ? 'none' : 'block';
+      }
+
+      if (DOM.saveSettingsBtn) {
+        if (tabId === 'tab-editor') {
+          DOM.saveSettingsBtn.textContent = 'Save Editor Settings';
+        } else if (tabId === 'tab-viewer') {
+          DOM.saveSettingsBtn.textContent = 'Save Viewer Settings';
+        } else {
+          DOM.saveSettingsBtn.textContent = 'Save Changes';
+        }
+      }
+
+      this.updateLivePreview();
     },
 
     populateForm() {
@@ -2676,52 +2755,121 @@ function calculateStats(markdownText) {
       if (DOM.wordWrapToggle) DOM.wordWrapToggle.checked = state.wordWrap !== false;
       if (DOM.autoClosePairsToggle) DOM.autoClosePairsToggle.checked = state.autoClosePairs !== false;
 
-      if (DOM.defaultThemeSelect) DOM.defaultThemeSelect.value = state.defaultTheme || state.theme;
+      if (DOM.defaultThemeSelect) DOM.defaultThemeSelect.value = state.theme || state.defaultTheme || 'github-light';
       if (DOM.syncScrollToggle) DOM.syncScrollToggle.checked = state.syncScroll !== false;
       if (DOM.renderMathToggle) DOM.renderMathToggle.checked = state.renderMath !== false;
       if (DOM.renderMermaidToggle) DOM.renderMermaidToggle.checked = state.renderMermaid !== false;
       if (DOM.customCssInput) DOM.customCssInput.value = state.customCss || '';
     },
 
-    save() {
-      if (DOM.fontFamilySelect) applyFontFamily(DOM.fontFamilySelect.value);
-      if (DOM.fontSizeInput) applyFontSize(parseInt(DOM.fontSizeInput.value, 10));
-      if (DOM.tabSizeSelect) applyTabSize(DOM.tabSizeSelect.value);
-      if (DOM.lineNumbersToggle) applyLineNumbers(DOM.lineNumbersToggle.checked);
-      if (DOM.wordWrapToggle) applyWordWrap(DOM.wordWrapToggle.checked);
-      if (DOM.autoClosePairsToggle) applyAutoClosePairs(DOM.autoClosePairsToggle.checked);
+    updateLivePreview() {
+      const card = document.getElementById('settings-preview-card');
+      if (!card) return;
 
-      if (DOM.defaultThemeSelect) {
-        state.defaultTheme = DOM.defaultThemeSelect.value;
-        applyTheme(state.defaultTheme);
+      // Font Family
+      const font = DOM.fontFamilySelect ? DOM.fontFamilySelect.value : state.fontFamily;
+      let family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif';
+      if (font === 'serif') {
+        family = 'Merriweather, Georgia, "Times New Roman", serif';
+      } else if (font === 'mono') {
+        family = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace';
       }
-      if (DOM.syncScrollToggle) setSyncScroll(DOM.syncScrollToggle.checked);
-      if (DOM.renderMathToggle) applyRenderMath(DOM.renderMathToggle.checked);
-      if (DOM.renderMermaidToggle) applyRenderMermaid(DOM.renderMermaidToggle.checked);
-      if (DOM.customCssInput) applyCustomCss(DOM.customCssInput.value);
+      card.style.fontFamily = family;
+
+      // Font Size
+      const size = DOM.fontSizeInput ? parseInt(DOM.fontSizeInput.value, 10) : state.fontSize;
+      card.style.fontSize = `${size || 15}px`;
+
+      // Theme
+      const theme = DOM.defaultThemeSelect ? DOM.defaultThemeSelect.value : state.theme;
+      card.setAttribute('data-theme', theme || 'github-light');
+
+      // Custom CSS Preview
+      const cssVal = DOM.customCssInput ? DOM.customCssInput.value : '';
+      let styleEl = document.getElementById('settings-live-preview-css');
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'settings-live-preview-css';
+        document.head.appendChild(styleEl);
+      }
+      if (cssVal && cssVal.trim()) {
+        const sanitized = sanitizeCustomCss(cssVal);
+        styleEl.textContent = sanitized;
+      } else {
+        styleEl.textContent = '';
+      }
+    },
+
+    save() {
+      const liveCssEl = document.getElementById('settings-live-preview-css');
+      if (liveCssEl) liveCssEl.textContent = '';
+
+      // Tab-scoped save: strictly save only the active tab's settings
+      if (this.currentTab === 'tab-editor') {
+        if (DOM.fontFamilySelect) applyFontFamily(DOM.fontFamilySelect.value);
+        if (DOM.fontSizeInput) applyFontSize(parseInt(DOM.fontSizeInput.value, 10));
+        if (DOM.tabSizeSelect) applyTabSize(DOM.tabSizeSelect.value);
+        if (DOM.lineNumbersToggle) applyLineNumbers(DOM.lineNumbersToggle.checked);
+        if (DOM.wordWrapToggle) applyWordWrap(DOM.wordWrapToggle.checked);
+        if (DOM.autoClosePairsToggle) applyAutoClosePairs(DOM.autoClosePairsToggle.checked);
+        showQuickNotification('Editor settings saved');
+      } else if (this.currentTab === 'tab-viewer') {
+        if (DOM.defaultThemeSelect) {
+          state.defaultTheme = DOM.defaultThemeSelect.value;
+          applyTheme(state.defaultTheme);
+        }
+        if (DOM.syncScrollToggle) setSyncScroll(DOM.syncScrollToggle.checked);
+        if (DOM.renderMathToggle) applyRenderMath(DOM.renderMathToggle.checked);
+        if (DOM.renderMermaidToggle) applyRenderMermaid(DOM.renderMermaidToggle.checked);
+        if (DOM.customCssInput) applyCustomCss(DOM.customCssInput.value);
+        showQuickNotification('Viewer settings saved');
+      } else {
+        showQuickNotification('Settings saved');
+      }
 
       this.close();
       saveToStorage();
-      showQuickNotification('Settings saved');
     },
 
     resetDefaults() {
-      applyFontFamily('system');
-      applyFontSize(15);
-      applyTabSize(2);
-      applyLineNumbers(true);
-      applyWordWrap(true);
-      applyAutoClosePairs(true);
-      state.defaultTheme = 'github-light';
-      applyTheme('github-light');
-      setSyncScroll(true);
-      applyRenderMath(true);
-      applyRenderMermaid(true);
-      applyCustomCss('');
+      const liveCssEl = document.getElementById('settings-live-preview-css');
+      if (liveCssEl) liveCssEl.textContent = '';
+
+      if (this.currentTab === 'tab-editor') {
+        applyFontFamily('system');
+        applyFontSize(15);
+        applyTabSize(2);
+        applyLineNumbers(true);
+        applyWordWrap(true);
+        applyAutoClosePairs(true);
+        showQuickNotification('Editor settings reset to defaults');
+      } else if (this.currentTab === 'tab-viewer') {
+        state.defaultTheme = 'github-light';
+        applyTheme('github-light');
+        setSyncScroll(true);
+        applyRenderMath(true);
+        applyRenderMermaid(true);
+        applyCustomCss('');
+        showQuickNotification('Viewer settings reset to defaults');
+      } else {
+        applyFontFamily('system');
+        applyFontSize(15);
+        applyTabSize(2);
+        applyLineNumbers(true);
+        applyWordWrap(true);
+        applyAutoClosePairs(true);
+        state.defaultTheme = 'github-light';
+        applyTheme('github-light');
+        setSyncScroll(true);
+        applyRenderMath(true);
+        applyRenderMermaid(true);
+        applyCustomCss('');
+        showQuickNotification('All settings reset to defaults');
+      }
 
       this.populateForm();
+      this.updateLivePreview();
       saveToStorage();
-      showQuickNotification('Settings reset to defaults');
     },
 
     filterShortcuts(query) {
@@ -2757,7 +2905,20 @@ function calculateStats(markdownText) {
       if (DOM.fontSizeInput) {
         DOM.fontSizeInput.addEventListener('input', () => {
           if (DOM.fontSizeVal) DOM.fontSizeVal.textContent = `${DOM.fontSizeInput.value}px`;
+          this.updateLivePreview();
         });
+      }
+
+      if (DOM.fontFamilySelect) {
+        DOM.fontFamilySelect.addEventListener('change', () => this.updateLivePreview());
+      }
+
+      if (DOM.defaultThemeSelect) {
+        DOM.defaultThemeSelect.addEventListener('change', () => this.updateLivePreview());
+      }
+
+      if (DOM.customCssInput) {
+        DOM.customCssInput.addEventListener('input', () => this.updateLivePreview());
       }
 
       if (DOM.shortcutsFilter) {
@@ -2774,7 +2935,8 @@ function calculateStats(markdownText) {
     }
   };
 
-  // Expose global hook for AppKit host
+  // Expose global hook for AppKit host & testing
+  window.SettingsController = SettingsController;
   window.openSettingsModal = (tabId) => SettingsController.open(tabId);
 
   // --- Modals Setup ---

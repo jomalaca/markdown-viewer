@@ -21,6 +21,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Verify Vendor Assets Integrity (SHA-256 Manifest)
+        run: |
+          chmod +x scripts/vendor_assets.sh
+          ./scripts/vendor_assets.sh --verify
+
       - name: Run Milestone 1 Security & Hygiene Tests
         run: |
           chmod +x scripts/test_milestone1.sh

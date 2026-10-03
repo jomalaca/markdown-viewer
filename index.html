@@ -6,8 +6,8 @@
   <title>Markdown Viewer — Private, Local-First GFM Editor & Live Preview</title>
   <meta name="description" content="100% private, local-first Markdown viewer and editor. Live GitHub Flavored Markdown preview, LaTeX math, Mermaid diagrams, multi-tab editing, and PDF/HTML export." />
 
-  <!-- Content Security Policy: 100% Offline & Private -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data: local-file:; font-src 'self' data:;" />
+  <!-- Content Security Policy: 100% Offline & Private (Strict No unsafe-inline for scripts) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: local-file:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-src 'none'; form-action 'none';" />
 
   <!-- KaTeX CSS for Math (Vendored Local) -->
   <link rel="stylesheet" href="vendor/katex/katex.min.css" />
@@ -287,10 +287,7 @@
         <!-- Right Pane: Live Rendered Preview -->
         <section class="pane pane-preview" id="pane-preview">
           <div class="preview-header">
-            <div class="preview-title">
-              <span class="preview-dot"></span>
-              <span>Live GFM Preview</span>
-            </div>
+            <div class="preview-title"></div>
             <div class="preview-actions">
               <button id="quick-copy-html" class="tool-btn-small" title="Copy rendered HTML">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
@@ -405,11 +402,9 @@
             <select id="default-theme-select" class="form-control">
               <option value="github-light">GitHub Light</option>
               <option value="github-dark">GitHub Dark</option>
-              <option value="sepia">Sepia (Warm)</option>
-              <option value="solarized-dark">Solarized Dark</option>
-              <option value="nord">Nord Frost</option>
               <option value="dracula">Dracula</option>
-              <option value="high-contrast">High Contrast</option>
+              <option value="nord">Nord Frost</option>
+              <option value="sepia">Sepia (Warm)</option>
             </select>
           </div>
           <div class="form-group-checkbox">
@@ -464,6 +459,19 @@
                 <tr><td>Zoom In / Out / Reset</td><td><kbd>Cmd</kbd> + <kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd></td></tr>
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <!-- In-Modal Live Settings Preview Card -->
+        <div class="settings-preview-section" id="settings-preview-section">
+          <div class="settings-preview-header">
+            <span class="settings-preview-title">Live Preview</span>
+            <span class="settings-preview-hint">Live feedback as you adjust preferences</span>
+          </div>
+          <div class="settings-preview-card" id="settings-preview-card" data-theme="github-light">
+            <div class="settings-preview-sample-heading"># Live Typography &amp; Theme Preview</div>
+            <div class="settings-preview-sample-text">Markdown Viewer provides local-first editing with real-time GitHub Flavored Markdown preview. Adjust font family, font size, or theme above to preview styling immediately.</div>
+            <div class="settings-preview-sample-code"><code>const formatted = true; // live code styling</code></div>
           </div>
         </div>
       </div>

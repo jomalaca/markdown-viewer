@@ -8,6 +8,40 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENDOR_DIR="${PROJECT_ROOT}/vendor"
 
+verify_assets() {
+  echo "==> Verifying vendor asset checksums against vendor/manifest.json..."
+  python3 -c "
+import sys, json, hashlib, os
+manifest_path = '${VENDOR_DIR}/manifest.json'
+if not os.path.exists(manifest_path):
+    print('ERROR: vendor/manifest.json not found', file=sys.stderr)
+    sys.exit(1)
+with open(manifest_path, 'r') as fp:
+    manifest = json.load(fp)
+failed = 0
+for rel_path, meta in manifest.get('files', {}).items():
+    full_path = os.path.join('${PROJECT_ROOT}', rel_path)
+    if not os.path.exists(full_path):
+        print(f'MISSING: {rel_path}', file=sys.stderr)
+        failed += 1
+        continue
+    with open(full_path, 'rb') as f:
+        actual_hash = hashlib.sha256(f.read()).hexdigest()
+    if actual_hash != meta['sha256']:
+        print(f'MISMATCH: {rel_path} (expected {meta[\"sha256\"]}, got {actual_hash})', file=sys.stderr)
+        failed += 1
+if failed > 0:
+    print(f'Verification FAILED: {failed} files invalid', file=sys.stderr)
+    sys.exit(1)
+print(f'✓ All {len(manifest.get(\"files\", {}))} vendor assets verified matching SHA-256 manifest!')
+"
+}
+
+if [ "${1:-}" = "--verify" ]; then
+  verify_assets
+  exit 0
+fi
+
 echo "==> Vendoring offline frontend libraries into ${VENDOR_DIR}..."
 
 mkdir -p "${VENDOR_DIR}/katex/fonts"
@@ -16,7 +50,7 @@ mkdir -p "${VENDOR_DIR}/katex/fonts"
 echo "  -> Downloading Marked v12.0.2..."
 curl -fsSL "https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" -o "${VENDOR_DIR}/marked.min.js"
 
-# 2. DOMPurify (v3.1.2)
+# 2. DOMPurify (v3.2.4)
 echo "  -> Downloading DOMPurify v3.2.4..."
 curl -fsSL "https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js" -o "${VENDOR_DIR}/purify.min.js"
 
@@ -68,5 +102,7 @@ done
 # 6. Mermaid (v10.9.1)
 echo "  -> Downloading Mermaid v10.9.1..."
 curl -fsSL "https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" -o "${VENDOR_DIR}/mermaid.min.js"
+
+verify_assets
 
 echo "✓ All frontend assets successfully vendored in ${VENDOR_DIR}!"

@@ -21,7 +21,7 @@ class LocalFileSchemeHandler: NSObject, WKURLSchemeHandler {
 
         let rawPath = url.path
         let filePath = (rawPath.removingPercentEncoding ?? rawPath)
-        let fileURL = URL(fileURLWithPath: filePath).standardized
+        let fileURL = URL(fileURLWithPath: filePath).resolvingSymlinksInPath().standardized
         let ext = fileURL.pathExtension.lowercased()
 
         // 1. Enforce strict image extension whitelist
@@ -129,7 +129,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
         prefs.allowsContentJavaScript = true
         config.defaultWebpagePreferences = prefs
         config.userContentController.add(self, name: "nativeApp")
+        #if DEBUG
         config.preferences.setValue(true, forKey: "developerExtrasEnabled")
+        #else
+        config.preferences.setValue(false, forKey: "developerExtrasEnabled")
+        #endif
         config.setURLSchemeHandler(LocalFileSchemeHandler(), forURLScheme: "local-file")
 
         webView = WKWebView(frame: .zero, configuration: config)
@@ -160,6 +164,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
             return
         }
 
+        #if DEBUG
         // Priority 2: Check current working directory or relative to binary (Dev/CLI mode)
         let cwd = FileManager.default.currentDirectoryPath
         let localURL = URL(fileURLWithPath: cwd).appendingPathComponent("index.html")
@@ -178,8 +183,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
             }
             candidate = candidate.deletingLastPathComponent()
         }
+        #endif
 
-        NSLog("Warning: Could not locate index.html")
+        NSLog("Warning: Could not locate index.html in app bundle resources")
     }
 
     // --- File Handling: Terminal & Finder ('open -a Markdown Viewer <file>') ---
@@ -428,6 +434,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
         case "print":
             let printInfo = NSPrintInfo.shared
             let printOp = webView.printOperation(with: printInfo)
+            if let title = dict["title"] as? String, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                printOp.jobTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            } else if let docTitle = webView.title, !docTitle.isEmpty {
+                printOp.jobTitle = docTitle
+            }
             printOp.run()
 
         case "openFileDialog":

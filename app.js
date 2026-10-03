@@ -207,12 +207,51 @@ function calculateStats(markdownText) {
     confirmCloseX: document.getElementById('confirm-close-x')
   };
 
+  // --- Custom CSS Sanitization ---
+  function sanitizeCustomCss(css) {
+    if (!css || typeof css !== 'string') return '';
+    let sanitized = css;
+    // Neutralize closing style tags to prevent HTML injection / style breakout
+    sanitized = sanitized.replace(/<\/\s*style/gi, '<\\/style');
+    // Strip @import rules (external stylesheet loading)
+    sanitized = sanitized.replace(/@import\s+[^;]+;?/gi, '/* [stripped @import] */');
+    // Strip external url(...) and data: url expressions
+    sanitized = sanitized.replace(/url\s*\(\s*(['"]?)(?:https?:|\/\/|data:|javascript:|file:)/gi, 'url($1blocked:');
+    // Strip dangerous legacy CSS functions and behaviors
+    sanitized = sanitized.replace(/expression\s*\(.*?\)/gi, 'none');
+    sanitized = sanitized.replace(/behavior\s*:[^;]+;?/gi, '');
+    sanitized = sanitized.replace(/-moz-binding\s*:[^;]+;?/gi, '');
+    return sanitized;
+  }
+
   // --- Initialize Mermaid ---
   if (window.mermaid) {
     mermaid.initialize({
       startOnLoad: false,
       theme: 'default',
       securityLevel: 'strict'
+    });
+  }
+
+  // --- Configure DOMPurify Security Hooks ---
+  if (window.DOMPurify) {
+    DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+      // Strictly restrict <input> elements to task list checkboxes
+      if (data.tagName === 'input') {
+        const type = node.getAttribute('type');
+        const isCheckbox = type && type.toLowerCase() === 'checkbox';
+        const isDisabled = node.hasAttribute('disabled');
+        if (!isCheckbox || !isDisabled) {
+          node.remove();
+        }
+      }
+    });
+
+    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+      // Enforce rel="noopener noreferrer" on external new-window links
+      if (node.nodeName === 'A' && node.getAttribute('target') === '_blank') {
+        node.setAttribute('rel', 'noopener noreferrer');
+      }
     });
   }
 
@@ -388,19 +427,19 @@ function calculateStats(markdownText) {
           </span>
         </div>
         <div class="structured-header-center">
-          <button class="structured-view-pill ${!isTree ? 'active' : ''}" onclick="window.setStructuredView('code')" title="Syntax-highlighted code view">Code</button>
-          <button class="structured-view-pill ${isTree ? 'active' : ''}" onclick="window.setStructuredView('tree')" ${parsed === null ? 'disabled' : ''} title="Interactive collapsible tree view">Tree</button>
+          <button class="structured-view-pill ${!isTree ? 'active' : ''}" data-action="view-code" title="Syntax-highlighted code view">Code</button>
+          <button class="structured-view-pill ${isTree ? 'active' : ''}" data-action="view-tree" ${parsed === null ? 'disabled' : ''} title="Interactive collapsible tree view">Tree</button>
         </div>
         <div class="structured-header-right">
           ${isTree ? `
-            <button class="structured-btn" onclick="window.toggleAllTreeNodes(true)" title="Expand all nodes">Expand All</button>
-            <button class="structured-btn" onclick="window.toggleAllTreeNodes(false)" title="Collapse all nodes">Collapse All</button>
+            <button class="structured-btn" data-action="expand-all" title="Expand all nodes">Expand All</button>
+            <button class="structured-btn" data-action="collapse-all" title="Collapse all nodes">Collapse All</button>
           ` : ''}
-          <button class="structured-btn" onclick="window.copyPrettifiedStructuredData()" title="Copy formatted 2-space indented ${format.toUpperCase()}">
+          <button class="structured-btn" data-action="copy" title="Copy formatted 2-space indented ${format.toUpperCase()}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
             <span>Copy</span>
           </button>
-          <button class="structured-btn" onclick="window.prettifyEditorContent()" title="Format raw content in editor textarea with 2-space indentation">
+          <button class="structured-btn" data-action="prettify" title="Format raw content in editor textarea with 2-space indentation">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 14 4-4-4-4"/><path d="m6 10-4 4 4 4"/><path d="m14 4-4 16"/></svg>
             <span>Prettify Editor</span>
           </button>
@@ -442,14 +481,37 @@ function calculateStats(markdownText) {
       `;
     }
 
-    // Inject into preview
-    DOM.previewRendered.innerHTML = `
+    // Assemble and sanitize before DOM insertion
+    const structuredMarkup = `
       <div class="structured-viewer">
         ${headerHtml}
         ${errorHtml}
         ${bodyHtml}
       </div>
     `;
+
+    if (window.DOMPurify) {
+      DOM.previewRendered.innerHTML = DOMPurify.sanitize(structuredMarkup, {
+        ADD_TAGS: ['span', 'div', 'button', 'svg', 'rect', 'path', 'circle', 'line', 'pre', 'code'],
+        ADD_ATTR: ['class', 'data-action', 'data-key', 'data-path', 'id', 'title', 'disabled', 'viewbox', 'fill', 'stroke', 'stroke-width', 'width', 'height', 'x', 'y', 'rx', 'ry', 'd', 'cx', 'cy', 'r', 'x1', 'y1', 'x2', 'y2']
+      });
+    } else {
+      DOM.previewRendered.innerHTML = structuredMarkup;
+    }
+
+    // Attach event listeners to structured header action buttons
+    DOM.previewRendered.querySelectorAll('.structured-header [data-action]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const action = btn.dataset.action;
+        if (action === 'view-code') window.setStructuredView('code');
+        else if (action === 'view-tree') window.setStructuredView('tree');
+        else if (action === 'expand-all') window.toggleAllTreeNodes(true);
+        else if (action === 'collapse-all') window.toggleAllTreeNodes(false);
+        else if (action === 'copy') window.copyPrettifiedStructuredData();
+        else if (action === 'prettify') window.prettifyEditorContent();
+      });
+    });
 
     // Attach tree toggle handlers
     if (isTree) {
@@ -516,7 +578,7 @@ function calculateStats(markdownText) {
       });
       return `
         <div class="json-tree-node" data-path="${nodePath}">
-          <div class="json-tree-row" onclick="window.toggleTreeNode(this)">
+          <div class="json-tree-row">
             <span class="json-tree-toggle">▼</span>
             ${keyLabel}
             <span class="json-tree-badge">Array[${childCount}]</span>
@@ -535,7 +597,7 @@ function calculateStats(markdownText) {
       });
       return `
         <div class="json-tree-node" data-path="${nodePath}" id="outline-node-${isRoot ? 'root' : escapeHtml(String(key))}">
-          <div class="json-tree-row" onclick="window.toggleTreeNode(this)">
+          <div class="json-tree-row">
             <span class="json-tree-toggle">▼</span>
             ${keyLabel}
             <span class="json-tree-badge">Object{${childCount}}</span>
@@ -551,7 +613,10 @@ function calculateStats(markdownText) {
   }
 
   function setupTreeToggleListeners() {
-    window.toggleTreeNode = function(rowEl) {
+    const root = DOM.previewRendered.querySelector('#json-tree-root');
+    if (!root) return;
+    root.addEventListener('click', (e) => {
+      const rowEl = e.target.closest('.json-tree-row');
       if (!rowEl) return;
       const toggle = rowEl.querySelector('.json-tree-toggle');
       const children = rowEl.nextElementSibling;
@@ -559,7 +624,7 @@ function calculateStats(markdownText) {
         const isCollapsed = children.classList.toggle('collapsed');
         toggle.classList.toggle('collapsed', isCollapsed);
       }
-    };
+    });
   }
 
   window.setStructuredView = function(mode) {
@@ -799,7 +864,7 @@ function calculateStats(markdownText) {
         <div class="code-block-container">
           <div class="code-block-header">
             <span>${lang || 'text'}</span>
-            <button class="copy-code-btn" onclick="navigator.clipboard.writeText(decodeURIComponent('${encodeURIComponent(code)}')).then(() => { this.innerText = 'Copied!'; setTimeout(() => { this.innerText = 'Copy'; }, 1500); })">Copy</button>
+            <button class="copy-code-btn" type="button" title="Copy code block to clipboard">Copy</button>
           </div>
           <pre><code class="hljs language-${lang || 'plaintext'}">${highlighted}</code></pre>
         </div>
@@ -816,8 +881,9 @@ function calculateStats(markdownText) {
     if (window.DOMPurify) {
       rawHtml = DOMPurify.sanitize(rawHtml, {
         ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'mover', 'munder', 'msqrt', 'mtable', 'mtr', 'mtd', 'span', 'div', 'input', 'img'],
-        ADD_ATTR: ['target', 'type', 'checked', 'class', 'style', 'aria-hidden', 'viewbox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'd', 'src', 'alt', 'title', 'loading', 'width', 'height'],
-        ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|local-file|data|file):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+        ADD_ATTR: ['target', 'type', 'checked', 'class', 'aria-hidden', 'viewbox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'd', 'src', 'alt', 'title', 'loading', 'width', 'height'],
+        FORBID_ATTR: ['style'],
+        ALLOWED_URI_REGEXP: /^(?:(?:(?:https?|mailto|tel|local-file)):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
         ADD_DATA_URI_TAGS: ['img']
       });
     }
@@ -1786,12 +1852,12 @@ function calculateStats(markdownText) {
       opt.classList.toggle('active', themeVal === themeKey);
     });
 
-    // Update highlight.js theme stylesheet
+    // Update highlight.js theme stylesheet (100% offline & local)
     if (DOM.hljsThemeLink) {
       if (themeKey === 'github-dark' || themeKey === 'dracula' || themeKey === 'nord') {
-        DOM.hljsThemeLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
+        DOM.hljsThemeLink.href = 'vendor/highlight-dark.min.css';
       } else {
-        DOM.hljsThemeLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+        DOM.hljsThemeLink.href = 'vendor/highlight-github.min.css';
       }
     }
 
@@ -1819,9 +1885,10 @@ function calculateStats(markdownText) {
   }
 
   function applyCustomCss(css) {
-    state.customCss = css;
-    DOM.injectedCustomCss.textContent = css;
-    DOM.customCssInput.value = css;
+    const cleanCss = sanitizeCustomCss(css);
+    state.customCss = cleanCss;
+    DOM.injectedCustomCss.textContent = cleanCss;
+    DOM.customCssInput.value = cleanCss;
   }
 
   function applyTabSize(size) {
@@ -1972,17 +2039,24 @@ function calculateStats(markdownText) {
 
   function exportStandaloneHtml() {
     const currentTab = state.tabs.find(t => t.id === state.activeTabId) || { title: 'Document' };
-    const renderedContent = DOM.previewRendered.innerHTML;
+    const rawContent = DOM.previewRendered.innerHTML;
+    const cleanContent = window.DOMPurify ? DOMPurify.sanitize(rawContent, {
+      ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'mover', 'munder', 'msqrt', 'mtable', 'mtr', 'mtd', 'span', 'div', 'img', 'svg', 'rect', 'path', 'circle', 'line'],
+      ADD_ATTR: ['target', 'type', 'checked', 'class', 'aria-hidden', 'viewbox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'd', 'src', 'alt', 'title', 'loading', 'width', 'height'],
+      FORBID_ATTR: ['style'],
+      ALLOWED_URI_REGEXP: /^(?:(?:(?:https?|mailto|tel)):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+      ADD_DATA_URI_TAGS: ['img']
+    }) : rawContent;
     const title = currentTab.title.replace(/\.md$/i, '');
+    const cleanCustomCss = sanitizeCustomCss(state.customCss || '');
 
     const fullHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;">
   <title>${escapeHtml(title)}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -2008,12 +2082,17 @@ function calculateStats(markdownText) {
     th { background-color: #f6f8fa; font-weight: 600; }
     tr:nth-child(2n) { background-color: #f6f8fa; }
     img { max-width: 100%; border-radius: 6px; }
-    ${state.customCss}
+    .hljs { color: #24292e; background: #f6f8fa; }
+    .hljs-keyword, .hljs-selector-tag, .hljs-subst { color: #d73a49; font-weight: bold; }
+    .hljs-string, .hljs-title, .hljs-section, .hljs-attribute, .hljs-literal, .hljs-template-tag, .hljs-template-variable, .hljs-type, .hljs-addition { color: #032f62; }
+    .hljs-comment, .hljs-quote, .hljs-deletion, .hljs-meta { color: #6a737d; font-style: italic; }
+    .hljs-number { color: #005cc5; }
+    ${cleanCustomCss}
   </style>
 </head>
 <body>
   <div class="markdown-body">
-    ${renderedContent}
+    ${cleanContent}
   </div>
 </body>
 </html>`;
@@ -2817,6 +2896,23 @@ function calculateStats(markdownText) {
     document.addEventListener('click', () => {
       DOM.exportDropdown.classList.remove('open');
       DOM.themeDropdown.classList.remove('open');
+    });
+
+    // Delegated click handler for code block copy buttons
+    DOM.previewRendered.addEventListener('click', (e) => {
+      const copyBtn = e.target.closest('.copy-code-btn');
+      if (!copyBtn) return;
+      e.preventDefault();
+      const codeEl = copyBtn.closest('.code-block-container')?.querySelector('code');
+      const textToCopy = codeEl ? codeEl.innerText : '';
+      if (textToCopy) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          copyBtn.innerText = 'Copied!';
+          setTimeout(() => { copyBtn.innerText = 'Copy'; }, 1500);
+        }).catch(() => {
+          showQuickNotification('Could not copy to clipboard');
+        });
+      }
     });
 
     setupExportMenu();

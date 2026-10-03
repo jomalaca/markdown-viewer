@@ -17,14 +17,15 @@ echo "  -> Downloading Marked v12.0.2..."
 curl -fsSL "https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" -o "${VENDOR_DIR}/marked.min.js"
 
 # 2. DOMPurify (v3.1.2)
-echo "  -> Downloading DOMPurify v3.1.2..."
-curl -fsSL "https://cdn.jsdelivr.net/npm/dompurify@3.1.2/dist/purify.min.js" -o "${VENDOR_DIR}/purify.min.js"
+echo "  -> Downloading DOMPurify v3.2.4..."
+curl -fsSL "https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js" -o "${VENDOR_DIR}/purify.min.js"
 
-# 3. Highlight.js core + yaml + github.min.css (v11.9.0)
+# 3. Highlight.js core + yaml + github themes (v11.9.0)
 echo "  -> Downloading Highlight.js v11.9.0..."
 curl -fsSL "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" -o "${VENDOR_DIR}/highlight.min.js"
 curl -fsSL "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js" -o "${VENDOR_DIR}/highlight-yaml.min.js"
 curl -fsSL "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" -o "${VENDOR_DIR}/highlight-github.min.css"
+curl -fsSL "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" -o "${VENDOR_DIR}/highlight-dark.min.css"
 
 # 4. JS-YAML (v4.1.0)
 echo "  -> Downloading JS-YAML v4.1.0..."

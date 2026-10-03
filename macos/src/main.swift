@@ -355,9 +355,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
                 let hasKnownExt = rawTitle.hasSuffix(".md") || rawTitle.hasSuffix(".markdown") || rawTitle.hasSuffix(".json") || rawTitle.hasSuffix(".yaml") || rawTitle.hasSuffix(".yml") || rawTitle.hasSuffix(".txt")
                 let title = hasKnownExt ? rawTitle : "\(rawTitle).md"
 
-                if let path = existingPath, !path.isEmpty && FileManager.default.fileExists(atPath: path) {
+                let standardizedPath = existingPath.map { URL(fileURLWithPath: $0).standardized.path }
+                let isVerifiedOpenedFile = standardizedPath.map { openedFiles.contains($0) } ?? false
+
+                if let path = standardizedPath, !path.isEmpty && FileManager.default.fileExists(atPath: path) && isVerifiedOpenedFile {
                     do {
                         try content.write(toFile: path, atomically: true, encoding: .utf8)
+                        openedFiles.insert(path)
                         let pathJSON = jsonString(from: path)
                         let titleJSON = jsonString(from: URL(fileURLWithPath: path).lastPathComponent)
                         let tabIdJSON = jsonString(from: tabId)
@@ -382,6 +386,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigati
                     if panel.runModal() == .OK, let targetURL = panel.url {
                         do {
                             try content.write(to: targetURL, atomically: true, encoding: .utf8)
+                            openedFiles.insert(targetURL.path)
                             let pathJSON = jsonString(from: targetURL.path)
                             let titleJSON = jsonString(from: targetURL.lastPathComponent)
                             let tabIdJSON = jsonString(from: tabId)

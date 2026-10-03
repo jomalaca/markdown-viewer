@@ -562,6 +562,28 @@ html[data-theme="nord"] .tab-dirty-dot {
   color: var(--text-muted);
 }
 
+.outline-search-wrapper {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+}
+
+.outline-filter-input {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.outline-filter-input:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+
 .outline-nav {
   flex: 1;
   overflow-y: auto;
@@ -587,12 +609,18 @@ html[data-theme="nord"] .tab-dirty-dot {
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .outline-item:hover {
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
+}
+
+.outline-item.active {
+  background-color: var(--accent-light);
+  color: var(--accent-color);
+  font-weight: 600;
 }
 
 .outline-item.h1 { font-weight: 600; padding-left: 8px; color: var(--text-primary); }
@@ -838,6 +866,51 @@ html[data-theme="nord"] .tab-dirty-dot {
   max-width: 900px;
   margin: 0 auto;
   word-wrap: break-word;
+  transition: max-width 0.2s ease, padding 0.2s ease;
+}
+
+/* Full Width Preview Layout Override */
+.preview-body.full-width,
+.preview-body.full-width .markdown-rendered,
+.markdown-rendered.full-width {
+  max-width: 100% !important;
+  padding-left: 28px;
+  padding-right: 28px;
+}
+
+.tool-btn-small.active {
+  background-color: var(--accent-light);
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+/* Auto-Heading Anchor Deep Links */
+.heading-anchor {
+  display: inline-block;
+  opacity: 0;
+  margin-left: 8px;
+  font-size: 0.75em;
+  font-weight: 500;
+  color: var(--accent-color);
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  user-select: none;
+  vertical-align: middle;
+}
+
+.markdown-rendered h1:hover .heading-anchor,
+.markdown-rendered h2:hover .heading-anchor,
+.markdown-rendered h3:hover .heading-anchor,
+.markdown-rendered h4:hover .heading-anchor,
+.markdown-rendered h5:hover .heading-anchor,
+.markdown-rendered h6:hover .heading-anchor {
+  opacity: 0.65;
+}
+
+.heading-anchor:hover {
+  opacity: 1 !important;
+  transform: scale(1.15);
 }
 
 .markdown-rendered h1,
@@ -904,6 +977,139 @@ html[data-theme="nord"] .tab-dirty-dot {
   padding: 0 1em;
   color: var(--text-secondary);
   border-left: 0.25em solid var(--blockquote-border);
+}
+
+/* --- GitHub Alert Callouts --- */
+.markdown-alert {
+  padding: 10px 16px;
+  margin: 16px 0;
+  border-left: 3.5px solid;
+  border-radius: 6px;
+  font-size: 0.95em;
+  line-height: 1.55;
+}
+
+.markdown-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 0.95em;
+}
+
+.markdown-alert-icon {
+  flex-shrink: 0;
+}
+
+.markdown-alert-content > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-alert-note {
+  border-color: #0969da;
+  background-color: rgba(9, 105, 218, 0.08);
+  color: var(--text-primary);
+}
+.markdown-alert-note .markdown-alert-title {
+  color: #0969da;
+}
+
+.markdown-alert-tip {
+  border-color: #1a7f37;
+  background-color: rgba(26, 127, 55, 0.08);
+  color: var(--text-primary);
+}
+.markdown-alert-tip .markdown-alert-title {
+  color: #1a7f37;
+}
+
+.markdown-alert-important {
+  border-color: #8250df;
+  background-color: rgba(130, 80, 223, 0.08);
+  color: var(--text-primary);
+}
+.markdown-alert-important .markdown-alert-title {
+  color: #8250df;
+}
+
+.markdown-alert-warning {
+  border-color: #9a6700;
+  background-color: rgba(154, 103, 0, 0.08);
+  color: var(--text-primary);
+}
+.markdown-alert-warning .markdown-alert-title {
+  color: #9a6700;
+}
+
+.markdown-alert-caution {
+  border-color: #cf222e;
+  background-color: rgba(207, 34, 46, 0.08);
+  color: var(--text-primary);
+}
+.markdown-alert-caution .markdown-alert-title {
+  color: #cf222e;
+}
+
+/* Dark mode & theme alert overrides */
+html[data-theme="github-dark"] .markdown-alert-note,
+html[data-theme="dracula"] .markdown-alert-note,
+html[data-theme="nord"] .markdown-alert-note {
+  border-color: #58a6ff;
+  background-color: rgba(56, 139, 253, 0.12);
+}
+html[data-theme="github-dark"] .markdown-alert-note .markdown-alert-title,
+html[data-theme="dracula"] .markdown-alert-note .markdown-alert-title,
+html[data-theme="nord"] .markdown-alert-note .markdown-alert-title {
+  color: #58a6ff;
+}
+
+html[data-theme="github-dark"] .markdown-alert-tip,
+html[data-theme="dracula"] .markdown-alert-tip,
+html[data-theme="nord"] .markdown-alert-tip {
+  border-color: #3fb950;
+  background-color: rgba(46, 160, 67, 0.12);
+}
+html[data-theme="github-dark"] .markdown-alert-tip .markdown-alert-title,
+html[data-theme="dracula"] .markdown-alert-tip .markdown-alert-title,
+html[data-theme="nord"] .markdown-alert-tip .markdown-alert-title {
+  color: #3fb950;
+}
+
+html[data-theme="github-dark"] .markdown-alert-important,
+html[data-theme="dracula"] .markdown-alert-important,
+html[data-theme="nord"] .markdown-alert-important {
+  border-color: #a371f7;
+  background-color: rgba(163, 113, 247, 0.12);
+}
+html[data-theme="github-dark"] .markdown-alert-important .markdown-alert-title,
+html[data-theme="dracula"] .markdown-alert-important .markdown-alert-title,
+html[data-theme="nord"] .markdown-alert-important .markdown-alert-title {
+  color: #a371f7;
+}
+
+html[data-theme="github-dark"] .markdown-alert-warning,
+html[data-theme="dracula"] .markdown-alert-warning,
+html[data-theme="nord"] .markdown-alert-warning {
+  border-color: #d29922;
+  background-color: rgba(187, 128, 9, 0.12);
+}
+html[data-theme="github-dark"] .markdown-alert-warning .markdown-alert-title,
+html[data-theme="dracula"] .markdown-alert-warning .markdown-alert-title,
+html[data-theme="nord"] .markdown-alert-warning .markdown-alert-title {
+  color: #d29922;
+}
+
+html[data-theme="github-dark"] .markdown-alert-caution,
+html[data-theme="dracula"] .markdown-alert-caution,
+html[data-theme="nord"] .markdown-alert-caution {
+  border-color: #f85149;
+  background-color: rgba(248, 81, 73, 0.12);
+}
+html[data-theme="github-dark"] .markdown-alert-caution .markdown-alert-title,
+html[data-theme="dracula"] .markdown-alert-caution .markdown-alert-title,
+html[data-theme="nord"] .markdown-alert-caution .markdown-alert-title {
+  color: #f85149;
 }
 
 .markdown-rendered ul,

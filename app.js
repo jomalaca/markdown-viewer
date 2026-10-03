@@ -117,7 +117,8 @@ function calculateStats(markdownText) {
     autoClosePairs: true,
     renderMath: true,
     renderMermaid: true,
-    defaultTheme: 'github-light'
+    defaultTheme: 'github-light',
+    fullWidthPreview: false
   };
 
   // --- DOM Elements ---
@@ -135,9 +136,12 @@ function calculateStats(markdownText) {
     newTabBtn: document.getElementById('new-tab-btn'),
     sidebarOutline: document.getElementById('sidebar-outline'),
     outlineNav: document.getElementById('outline-nav'),
+    outlineFilterInput: document.getElementById('outline-filter-input'),
     toggleSidebarBtn: document.getElementById('toggle-sidebar-btn'),
     closeSidebarBtn: document.getElementById('close-sidebar-btn'),
     toggleSyncScrollBtn: document.getElementById('toggle-sync-scroll'),
+    toggleFullWidthBtn: document.getElementById('toggle-full-width'),
+    fullWidthToggle: document.getElementById('full-width-toggle'),
     viewModeBtns: document.querySelectorAll('.view-pill'),
     openFileBtn: document.getElementById('open-file-btn'),
     fileInput: document.getElementById('file-input'),
@@ -890,6 +894,9 @@ function calculateStats(markdownText) {
 
     DOM.previewRendered.innerHTML = rawHtml;
 
+    // Render GitHub Alert Callout blocks (> [!NOTE], [!TIP], etc.)
+    renderAlertCallouts(DOM.previewRendered);
+
     // Resolve any raw HTML <img> tags with relative paths
     DOM.previewRendered.querySelectorAll('img').forEach(img => {
       const srcAttr = img.getAttribute('src');
@@ -922,10 +929,75 @@ function calculateStats(markdownText) {
     updateDocumentTitle();
   }
 
+  // --- GitHub Alert Callouts (> [!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]) ---
+  function renderAlertCallouts(container) {
+    if (!container) return;
+    const blockquotes = container.querySelectorAll('blockquote');
+    blockquotes.forEach(bq => {
+      const firstP = bq.querySelector('p');
+      if (!firstP) return;
+
+      const rawText = firstP.textContent.trim();
+      const match = rawText.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i);
+      if (!match) return;
+
+      const alertType = match[1].toUpperCase();
+      const typeClass = alertType.toLowerCase();
+
+      // Clean the [!TYPE] marker and any immediately following line break/whitespace
+      const originalHtml = firstP.innerHTML.trim();
+      const cleanedHtml = originalHtml.replace(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:<br\s*\/?>|\s*)/i, '');
+      if (cleanedHtml) {
+        firstP.innerHTML = cleanedHtml;
+      } else {
+        firstP.remove();
+      }
+
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `markdown-alert markdown-alert-${typeClass}`;
+      alertDiv.setAttribute('role', 'region');
+      alertDiv.setAttribute('aria-label', alertType);
+
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'markdown-alert-title';
+
+      let iconSvg = '';
+      const titleText = alertType.charAt(0) + alertType.slice(1).toLowerCase();
+
+      if (alertType === 'NOTE') {
+        iconSvg = '<svg class="markdown-alert-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>';
+      } else if (alertType === 'TIP') {
+        iconSvg = '<svg class="markdown-alert-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.18.213-.362.434-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5Zm1 3h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1 0-1.5Z"></path></svg>';
+      } else if (alertType === 'IMPORTANT') {
+        iconSvg = '<svg class="markdown-alert-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>';
+      } else if (alertType === 'WARNING') {
+        iconSvg = '<svg class="markdown-alert-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>';
+      } else if (alertType === 'CAUTION') {
+        iconSvg = '<svg class="markdown-alert-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>';
+      }
+
+      titleDiv.innerHTML = `${iconSvg}<span>${titleText}</span>`;
+      alertDiv.appendChild(titleDiv);
+
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'markdown-alert-content';
+      while (bq.firstChild) {
+        contentDiv.appendChild(bq.firstChild);
+      }
+      alertDiv.appendChild(contentDiv);
+
+      bq.replaceWith(alertDiv);
+    });
+  }
+
+  window.renderAlertCallouts = renderAlertCallouts;
+
   // --- Interactive Checkboxes ---
   function setupChecklistListeners() {
     const checkboxes = DOM.previewRendered.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach((cb, index) => {
+      cb.removeAttribute('disabled');
+      cb.style.cursor = 'pointer';
       cb.addEventListener('change', () => {
         toggleTaskCheckboxInMarkdown(index, cb.checked);
       });
@@ -960,7 +1032,7 @@ function calculateStats(markdownText) {
     }
   }
 
-  // --- Document Outline (TOC) ---
+  // --- Document Outline (TOC) & Heading Anchor Deep Links ---
   function updateOutline() {
     const headings = DOM.previewRendered.querySelectorAll('h1, h2, h3, h4, h5, h6');
     if (!headings.length) {
@@ -971,18 +1043,47 @@ function calculateStats(markdownText) {
     const frag = document.createDocumentFragment();
     headings.forEach((heading, idx) => {
       const level = heading.tagName.toLowerCase();
-      const id = heading.id || `heading-${idx}`;
-      heading.id = id;
+      // Remove any existing anchor text for clean title
+      const existingAnchor = heading.querySelector('.heading-anchor');
+      if (existingAnchor) existingAnchor.remove();
+
+      const headingText = heading.textContent.trim();
+      let slug = headingText
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-');
+      if (!slug) slug = `heading-${idx}`;
+      heading.id = slug;
+
+      // Attach hover anchor link to heading
+      const anchor = document.createElement('a');
+      anchor.className = 'heading-anchor';
+      anchor.href = `#${slug}`;
+      anchor.setAttribute('aria-label', `Link to ${headingText}`);
+      anchor.title = 'Copy deep link to section';
+      anchor.textContent = '#';
+      anchor.addEventListener('click', (e) => {
+        e.preventDefault();
+        const cleanUrl = window.location.href.split('#')[0] + '#' + slug;
+        navigator.clipboard.writeText(cleanUrl);
+        heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showQuickNotification(`Copied link: #${slug}`);
+      });
+      heading.appendChild(anchor);
 
       const item = document.createElement('a');
       item.className = `outline-item ${level}`;
-      item.href = `#${id}`;
-      item.textContent = heading.textContent.trim();
-      item.title = heading.textContent.trim();
+      item.href = `#${slug}`;
+      item.dataset.headingId = slug;
+      item.textContent = headingText;
+      item.title = headingText;
 
       item.addEventListener('click', (e) => {
         e.preventDefault();
         heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        DOM.outlineNav.querySelectorAll('.outline-item').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
       });
 
       frag.appendChild(item);
@@ -990,6 +1091,42 @@ function calculateStats(markdownText) {
 
     DOM.outlineNav.innerHTML = '';
     DOM.outlineNav.appendChild(frag);
+
+    if (DOM.outlineFilterInput && DOM.outlineFilterInput.value.trim()) {
+      filterOutline(DOM.outlineFilterInput.value);
+    }
+  }
+
+  function filterOutline(query) {
+    const q = (query || '').toLowerCase().trim();
+    const items = DOM.outlineNav ? DOM.outlineNav.querySelectorAll('.outline-item') : [];
+    items.forEach(item => {
+      const text = item.textContent.toLowerCase();
+      item.style.display = text.includes(q) ? '' : 'none';
+    });
+  }
+
+  function updateActiveOutlineOnScroll() {
+    if (!DOM.previewBody || !DOM.outlineNav) return;
+    const headings = DOM.previewRendered.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    if (!headings.length) return;
+
+    const containerTop = DOM.previewBody.getBoundingClientRect().top;
+    let currentHeadingId = null;
+
+    headings.forEach(h => {
+      const rect = h.getBoundingClientRect();
+      if (rect.top - containerTop <= 60) {
+        currentHeadingId = h.id;
+      }
+    });
+
+    if (currentHeadingId) {
+      const items = DOM.outlineNav.querySelectorAll('.outline-item');
+      items.forEach(item => {
+        item.classList.toggle('active', item.dataset.headingId === currentHeadingId);
+      });
+    }
   }
 
   // --- Line Numbers & Caret Stats ---
@@ -1084,6 +1221,7 @@ function calculateStats(markdownText) {
     });
 
     DOM.previewBody.addEventListener('scroll', () => {
+      updateActiveOutlineOnScroll();
       if (!state.syncScroll || state.isEditorScrolling) return;
       state.isPreviewScrolling = true;
 
@@ -1587,6 +1725,7 @@ function calculateStats(markdownText) {
       localStorage.setItem('mv_render_math', String(state.renderMath !== false));
       localStorage.setItem('mv_render_mermaid', String(state.renderMermaid !== false));
       localStorage.setItem('mv_default_theme', state.defaultTheme || state.theme);
+      localStorage.setItem('mv_full_width', String(state.fullWidthPreview === true));
     } catch (e) {
       console.warn('LocalStorage save failed:', e);
     }
@@ -1651,6 +1790,8 @@ function calculateStats(markdownText) {
       if (savedRenderMermaid !== null) state.renderMermaid = (savedRenderMermaid === 'true');
       if (savedDefaultTheme) state.defaultTheme = savedDefaultTheme;
       if (savedCustomCss) applyCustomCss(savedCustomCss);
+      const savedFullWidth = localStorage.getItem('mv_full_width');
+      if (savedFullWidth !== null) setFullWidthPreview(savedFullWidth === 'true');
 
       // 3. Disk auto-recovery check: if any restored tab has a filePath on disk but its content is empty, reload it from disk
       state.tabs.forEach(t => {
@@ -1844,6 +1985,17 @@ function calculateStats(markdownText) {
     DOM.toggleSyncScrollBtn.classList.toggle('active', enabled);
     saveToStorage();
   }
+
+  function setFullWidthPreview(enabled) {
+    state.fullWidthPreview = Boolean(enabled);
+    if (DOM.previewBody) DOM.previewBody.classList.toggle('full-width', state.fullWidthPreview);
+    if (DOM.previewRendered) DOM.previewRendered.classList.toggle('full-width', state.fullWidthPreview);
+    if (DOM.toggleFullWidthBtn) DOM.toggleFullWidthBtn.classList.toggle('active', state.fullWidthPreview);
+    if (DOM.fullWidthToggle) DOM.fullWidthToggle.checked = state.fullWidthPreview;
+    saveToStorage();
+  }
+  window.setFullWidthPreview = setFullWidthPreview;
+
 
   // --- Splitter Drag Logic ---
   let isDraggingSplitter = false;
@@ -2564,6 +2716,14 @@ function calculateStats(markdownText) {
         return;
       }
 
+      // Toggle Full Width Preview: Cmd+Shift+W or Ctrl+Shift+W
+      if (isMetaOrCtrl && e.shiftKey && e.key.toLowerCase() === 'w') {
+        e.preventDefault();
+        setFullWidthPreview(!state.fullWidthPreview);
+        return;
+      }
+
+
       // Open: Cmd+O or Ctrl+O (without Shift)
       if (isMetaOrCtrl && !e.shiftKey && e.key.toLowerCase() === 'o') {
         e.preventDefault();
@@ -2757,6 +2917,7 @@ function calculateStats(markdownText) {
 
       if (DOM.defaultThemeSelect) DOM.defaultThemeSelect.value = state.theme || state.defaultTheme || 'github-light';
       if (DOM.syncScrollToggle) DOM.syncScrollToggle.checked = state.syncScroll !== false;
+      if (DOM.fullWidthToggle) DOM.fullWidthToggle.checked = Boolean(state.fullWidthPreview);
       if (DOM.renderMathToggle) DOM.renderMathToggle.checked = state.renderMath !== false;
       if (DOM.renderMermaidToggle) DOM.renderMermaidToggle.checked = state.renderMermaid !== false;
       if (DOM.customCssInput) DOM.customCssInput.value = state.customCss || '';
@@ -2819,6 +2980,7 @@ function calculateStats(markdownText) {
           applyTheme(state.defaultTheme);
         }
         if (DOM.syncScrollToggle) setSyncScroll(DOM.syncScrollToggle.checked);
+        if (DOM.fullWidthToggle) setFullWidthPreview(DOM.fullWidthToggle.checked);
         if (DOM.renderMathToggle) applyRenderMath(DOM.renderMathToggle.checked);
         if (DOM.renderMermaidToggle) applyRenderMermaid(DOM.renderMermaidToggle.checked);
         if (DOM.customCssInput) applyCustomCss(DOM.customCssInput.value);
@@ -2847,6 +3009,7 @@ function calculateStats(markdownText) {
         state.defaultTheme = 'github-light';
         applyTheme('github-light');
         setSyncScroll(true);
+        setFullWidthPreview(false);
         applyRenderMath(true);
         applyRenderMermaid(true);
         applyCustomCss('');
@@ -2861,6 +3024,7 @@ function calculateStats(markdownText) {
         state.defaultTheme = 'github-light';
         applyTheme('github-light');
         setSyncScroll(true);
+        setFullWidthPreview(false);
         applyRenderMath(true);
         applyRenderMermaid(true);
         applyCustomCss('');
@@ -3026,12 +3190,19 @@ function calculateStats(markdownText) {
       setSyncScroll(!state.syncScroll);
     });
 
+    // Full width preview button
+    if (DOM.toggleFullWidthBtn) {
+      DOM.toggleFullWidthBtn.addEventListener('click', () => {
+        setFullWidthPreview(!state.fullWidthPreview);
+      });
+    }
+
     // New tab button
     DOM.newTabBtn.addEventListener('click', () => {
       createTab();
     });
 
-    // Sidebar Outline Toggle
+    // Sidebar Outline Toggle & Search Filter
     DOM.toggleSidebarBtn.addEventListener('click', () => {
       DOM.sidebarOutline.classList.toggle('collapsed');
     });
@@ -3039,6 +3210,13 @@ function calculateStats(markdownText) {
     DOM.closeSidebarBtn.addEventListener('click', () => {
       DOM.sidebarOutline.classList.add('collapsed');
     });
+
+    if (DOM.outlineFilterInput) {
+      DOM.outlineFilterInput.addEventListener('input', (e) => {
+        filterOutline(e.target.value);
+      });
+    }
+
 
     // Theme dropdown
     DOM.themeBtn.addEventListener('click', (e) => {

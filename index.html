@@ -303,7 +303,7 @@
             </div>
           </div>
           <div class="preview-body" id="preview-body">
-            <div class="markdown-rendered" id="markdown-rendered">
+            <div class="markdown-rendered" id="markdown-rendered" contenteditable="true">
               <!-- Rendered Markdown goes here -->
             </div>
           </div>
@@ -364,6 +364,7 @@
         <button class="settings-tab-btn active" data-tab="tab-editor" role="tab" aria-selected="true">Editor</button>
         <button class="settings-tab-btn" data-tab="tab-viewer" role="tab" aria-selected="false">Viewer &amp; Appearance</button>
         <button class="settings-tab-btn" data-tab="tab-shortcuts" role="tab" aria-selected="false">Keyboard Shortcuts</button>
+        <button class="settings-tab-btn" data-tab="tab-changelog" role="tab" aria-selected="false">What's New</button>
       </div>
 
       <div class="modal-body">
@@ -427,6 +428,10 @@
             <label for="render-mermaid-toggle">Render Mermaid Flowcharts &amp; Diagrams</label>
           </div>
           <div class="form-group-checkbox">
+            <input type="checkbox" id="preview-editing-toggle" checked />
+            <label for="preview-editing-toggle">Enable Direct Preview Editing (WYSIWYG contenteditable canvas)</label>
+          </div>
+          <div class="form-group-checkbox">
             <input type="checkbox" id="full-width-toggle" />
             <label for="full-width-toggle">Full-Width Preview Layout (Extend text to full window width)</label>
           </div>
@@ -471,6 +476,73 @@
                 <tr><td>Zoom In / Out / Reset</td><td><kbd>Cmd</kbd> + <kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd></td></tr>
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <!-- Tab 4: What's New & Release Notes -->
+        <div class="settings-tab-pane hidden" id="tab-changelog" role="tabpanel">
+          <div class="changelog-header-banner">
+            <div>
+              <div class="changelog-app-title">Markdown Viewer for macOS</div>
+              <div class="changelog-app-subtitle">Private, local-first GFM editor and live previewer</div>
+            </div>
+            <span class="changelog-current-badge">v1.6.0 (Current)</span>
+          </div>
+
+          <div class="changelog-list-container">
+            <div class="changelog-card">
+              <div class="changelog-card-header">
+                <span class="changelog-version-tag current">v1.6.0</span>
+                <span class="changelog-date">October 5, 2026</span>
+              </div>
+              <ul class="changelog-bullet-list">
+                <li><strong>Always-On Preview Editing:</strong> In-place contenteditable preview canvas with bidirectional markdown synchronization.</li>
+                <li><strong>Modern GitHub Task Checklists:</strong> 16px rounded-square checkboxes, accent fill, SVG checkmark, and subtle completed transition.</li>
+                <li><strong>Multi-Line Task List Formatting:</strong> Toggle task checklists across multiple selected lines simultaneously.</li>
+                <li><strong>Find Input Focus Fix:</strong> Search without focus jumping back to the editor on the first keystroke.</li>
+                <li><strong>Dual Homebrew Distribution:</strong> Native Homebrew Formula alongside Homebrew Cask for Gatekeeper-free installation.</li>
+                <li><strong>In-App What's New Tab:</strong> View categorized release notes and version history directly in Preferences.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-card">
+              <div class="changelog-card-header">
+                <span class="changelog-version-tag">v1.5.0</span>
+                <span class="changelog-date">October 4, 2026</span>
+              </div>
+              <ul class="changelog-bullet-list">
+                <li><strong>Full-Width Preview Layout:</strong> Option to extend rendered content across the entire window width.</li>
+                <li><strong>Tab-Scoped Settings:</strong> Save only the active settings tab without accidental theme reverts.</li>
+                <li><strong>Live Settings Preview:</strong> Real-time font and theme preview card inside Preferences.</li>
+                <li><strong>Cleaned Preview Header:</strong> Distraction-free preview header layout.</li>
+                <li><strong>Dynamic Export Titles:</strong> PDF &amp; HTML exports use the document's first heading as default title.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-card">
+              <div class="changelog-card-header">
+                <span class="changelog-version-tag">v1.4.0</span>
+                <span class="changelog-date">October 2, 2026</span>
+              </div>
+              <ul class="changelog-bullet-list">
+                <li><strong>GitHub Alert Callouts:</strong> Rendered <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!WARNING]</code>, and <code>[!CAUTION]</code> banners.</li>
+                <li><strong>Document Outline Navigation:</strong> Collapsible Table of Contents sidebar with deep anchor linking.</li>
+                <li><strong>JSON/YAML Document Viewer:</strong> Syntax highlighting and interactive collapsible JSON tree views.</li>
+                <li><strong>Keyboard Shortcut Cheatsheet:</strong> Searchable shortcuts reference in Preferences.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-card">
+              <div class="changelog-card-header">
+                <span class="changelog-version-tag">v1.3.1</span>
+                <span class="changelog-date">September 29, 2026</span>
+              </div>
+              <ul class="changelog-bullet-list">
+                <li><strong>Security Hardening:</strong> DOMPurify sanitization rules and restricted custom CSS injection.</li>
+                <li><strong>Local-First Asset Loading:</strong> Hardened custom scheme handlers for local images.</li>
+                <li><strong>Synchronized Scrolling:</strong> Improved scroll coordination between editor and preview.</li>
+              </ul>
+            </div>
           </div>
         </div>
 

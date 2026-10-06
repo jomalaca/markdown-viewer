@@ -90,20 +90,38 @@ if [ ! -f "${DIST_ZIP}" ]; then
   exit 1
 fi
 
-# 6. Calculate SHA-256 checksum
-echo "==> Calculating distribution SHA-256..."
-SHA256="$(shasum -a 256 "${DIST_ZIP}" | awk '{print $1}')"
-echo "    SHA-256: ${SHA256}"
+# 6. Calculate SHA-256 checksums (Zip & Source Tarball)
+echo "==> Packaging source tarball and calculating checksums..."
+DIST_TAR="${PROJECT_ROOT}/dist/markdown-viewer-${VERSION}.tar.gz"
+git archive --format=tar.gz --prefix="markdown-viewer-${VERSION}/" -o "${DIST_TAR}" HEAD
 
-# 7. Update Cask formula in markdown-viewer repo
+SHA256="$(shasum -a 256 "${DIST_ZIP}" | awk '{print $1}')"
+TAR_SHA256="$(shasum -a 256 "${DIST_TAR}" | awk '{print $1}')"
+echo "    Zip SHA-256:     ${SHA256}"
+echo "    Tarball SHA-256: ${TAR_SHA256}"
+
+# 7. Update Cask and Formula in markdown-viewer repo
 CASK_FILE="${PROJECT_ROOT}/Casks/markdown-viewer.rb"
+FORMULA_FILE="${PROJECT_ROOT}/Formula/markdown-viewer.rb"
+
 echo "==> Updating ${CASK_FILE}..."
 sed -i '' -E "s/version \"[^\"]+\"/version \"${VERSION}\"/" "${CASK_FILE}"
 sed -i '' -E "s/sha256 \"[^\"]+\"/sha256 \"${SHA256}\"/" "${CASK_FILE}"
 
+if [ -f "${FORMULA_FILE}" ]; then
+  echo "==> Updating ${FORMULA_FILE}..."
+  sed -i '' -E "s/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?/v${VERSION}/g" "${FORMULA_FILE}"
+  sed -i '' -E "s/markdown-viewer-[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?\.tar\.gz/markdown-viewer-${VERSION}.tar.gz/g" "${FORMULA_FILE}"
+  sed -i '' -E "s/sha256 \"[^\"]+\"/sha256 \"${TAR_SHA256}\"/" "${FORMULA_FILE}"
+fi
+
 # 8. Commit and push git tag
 echo "==> Creating release commit and git tag ${TAG}..."
 git add "${PROJECT_ROOT}/package.json" "${PROJECT_ROOT}/macos/Info.plist" "${PROJECT_ROOT}/bin/markdown-viewer" "${CASK_FILE}"
+if [ -f "${FORMULA_FILE}" ]; then
+  git add "${FORMULA_FILE}"
+fi
+
 if ! git diff --cached --quiet; then
   git commit -m "chore(release): ${TAG} [skip ci]"
 fi
@@ -113,15 +131,34 @@ echo "==> Pushing commit and tag to ${MAIN_REPO}..."
 git push origin "${CURRENT_BRANCH}"
 git push origin "${TAG}"
 
-# 9. Create GitHub Release with attached zip
+# 9. Extract release notes from CHANGELOG.md & publish GitHub Release
+echo "==> Extracting release notes from CHANGELOG.md..."
+NOTES_TMP="$(mktemp)"
+awk -v ver="[${VERSION}]" '
+  $0 ~ "^## \\[" {
+    if (found) exit;
+    if (index($0, ver) > 0) { found=1; next; }
+  }
+  found { print }
+' "${PROJECT_ROOT}/CHANGELOG.md" > "${NOTES_TMP}"
+
 echo "==> Publishing GitHub Release ${TAG}..."
-gh release create "${TAG}" "${DIST_ZIP}" \
-  --repo "${MAIN_REPO}" \
-  --title "${TAG}" \
-  --generate-notes
+RELEASE_FILES=("${DIST_ZIP}" "${DIST_TAR}")
+if [ -s "${NOTES_TMP}" ]; then
+  gh release create "${TAG}" "${RELEASE_FILES[@]}" \
+    --repo "${MAIN_REPO}" \
+    --title "${TAG}" \
+    --notes-file "${NOTES_TMP}"
+else
+  gh release create "${TAG}" "${RELEASE_FILES[@]}" \
+    --repo "${MAIN_REPO}" \
+    --title "${TAG}" \
+    --generate-notes
+fi
+rm -f "${NOTES_TMP}"
 
 # 10. Update Homebrew Tap repository
-echo "==> Synchronizing formula with ${TAP_REPO}..."
+echo "==> Synchronizing formulas with ${TAP_REPO}..."
 TMP_TAP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TMP_TAP_DIR}"' EXIT
 
@@ -129,22 +166,23 @@ if gh repo view "${TAP_REPO}" >/dev/null 2>&1; then
   gh repo clone "${TAP_REPO}" "${TMP_TAP_DIR}/tap" -- --depth=1
   git -C "${TMP_TAP_DIR}/tap" config user.name "Josh Ma"
   git -C "${TMP_TAP_DIR}/tap" config user.email "jomalaca@users.noreply.github.com"
-  mkdir -p "${TMP_TAP_DIR}/tap/Casks"
+  mkdir -p "${TMP_TAP_DIR}/tap/Casks" "${TMP_TAP_DIR}/tap/Formula"
   cp "${CASK_FILE}" "${TMP_TAP_DIR}/tap/Casks/markdown-viewer.rb"
+  if [ -f "${FORMULA_FILE}" ]; then
+    cp "${FORMULA_FILE}" "${TMP_TAP_DIR}/tap/Formula/markdown-viewer.rb"
+  fi
 
-  git -C "${TMP_TAP_DIR}/tap" add "Casks/markdown-viewer.rb"
+  git -C "${TMP_TAP_DIR}/tap" add "Casks/markdown-viewer.rb" "Formula/markdown-viewer.rb" 2>/dev/null || true
   if ! git -C "${TMP_TAP_DIR}/tap" diff --cached --quiet; then
     git -C "${TMP_TAP_DIR}/tap" commit -m "bump(markdown-viewer): ${TAG}"
     git -C "${TMP_TAP_DIR}/tap" push origin HEAD
-    echo "✓ Successfully updated Cask formula in ${TAP_REPO}!"
+    echo "✓ Successfully updated Cask and Formula in ${TAP_REPO}!"
   else
-    echo "Notice: Cask formula in ${TAP_REPO} is already up to date."
+    echo "Notice: Homebrew tap formulas in ${TAP_REPO} are already up to date."
   fi
 else
   echo ""
   echo "⚠️ Warning: Tap repository '${TAP_REPO}' was not found on GitHub."
-  echo "To finish setup, create https://github.com/${TAP_REPO} and copy:"
-  echo "  ${CASK_FILE} -> ${TAP_REPO}/Casks/markdown-viewer.rb"
 fi
 
 echo ""
@@ -153,4 +191,6 @@ echo " 🎉 Release ${TAG} successfully published!"
 echo "=========================================================="
 echo "Users can now install / upgrade via:"
 echo "  brew update && brew upgrade --cask markdown-viewer"
+echo "  or via Formula:"
+echo "  brew update && brew install jomalaca/tap/markdown-viewer"
 echo ""

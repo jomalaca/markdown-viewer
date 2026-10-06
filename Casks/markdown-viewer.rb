@@ -1,5 +1,5 @@
 cask "markdown-viewer" do
-  version "1.5.0"
+  version "1.6.0"
   sha256 "57ad4cb8a906636ac7433258af22f86246c9eb1c755b0ea7bbb014d9062b8adc"
 
   # For GitHub Releases (or private tap assets):

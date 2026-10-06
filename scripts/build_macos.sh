@@ -14,7 +14,10 @@ RESOURCES="${CONTENTS}/Resources"
 DIST_DIR="${PROJECT_ROOT}/dist"
 CACHE_DIR="${BUILD_DIR}/module-cache"
 
-APP_VERSION="$(node -p "require('${PROJECT_ROOT}/package.json').version" 2>/dev/null || echo "1.0.0")"
+APP_VERSION="$(sed -nE 's/.*"version": *"([^"]+)".*/\1/p' "${PROJECT_ROOT}/package.json" | head -n 1 2>/dev/null || true)"
+if [ -z "${APP_VERSION}" ]; then
+  APP_VERSION="$(node -p "require('${PROJECT_ROOT}/package.json').version" 2>/dev/null || echo "1.0.0")"
+fi
 
 echo "==> Building Markdown Viewer.app v${APP_VERSION} (macOS Native)..."
 

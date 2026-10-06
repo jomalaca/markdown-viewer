@@ -5,6 +5,65 @@ All notable changes to **Markdown Viewer** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.6.0] - 2026-10-05
+
+### Added
+- **Always-On Direct Preview Editing**: Live WYSIWYG contenteditable canvas in the preview pane with real-time bidirectional synchronization back to the Markdown source and document state.
+- **Modern GitHub-Style Task Checklists**: 16px rounded-square checkboxes with custom SVG checkmarks, accent color fills, and subtle completed transition on completed task text.
+- **Multi-Line Task List Formatting**: Toolbar "Insert Task Checklist" toggles task checkboxes across all selected lines simultaneously.
+- **In-App "What's New" Tab**: Categorized release notes and version history directly in Preferences (<kbd>Cmd</kbd> + <kbd>,</kbd>).
+- **Homebrew Dual-Distribution (Formula + Cask)**: Added `Formula/markdown-viewer.rb` for source compilation alongside `Casks/markdown-viewer.rb` to eliminate macOS Gatekeeper quarantine warnings.
+
+### Fixed
+- **Find Input Focus Retention**: Fixed search input stealing focus to the editor on the first typed character.
+- **Build Script Portability**: Version extraction in `scripts/build_macos.sh` hardened with `sed` fallback, removing the Node.js requirement during Homebrew formula builds.
+
+### Security
+- Security fixes.
+
+---
+
+## [1.5.0] - 2026-10-04
+
+### Added
+- **Full-Width Preview Mode**: Extended preview canvas layout option and keyboard shortcut (<kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>W</kbd>).
+- **Tab-Scoped Preferences Saving**: Settings modal saves exclusively the active tab without unintentional theme resets.
+- **Live Settings Preview Card**: Real-time typography and theme preview card directly inside Preferences.
+- **Dynamic Document Export Titles**: Default PDF and HTML export titles dynamically derived from the document's first heading.
+
+### Changed
+- Cleaned preview header by removing the legacy live status indicator dot and text.
+
+### Security
+- Security fixes.
+
+---
+
+## [1.4.0] - 2026-10-02
+
+### Added
+- **GitHub Alert Callouts**: Support for `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, and `[!CAUTION]` alert blocks.
+- **Interactive Document Outline**: Collapsible Table of Contents sidebar with deep anchor linking (<kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd>).
+- **Structured Data Viewer**: Dedicated syntax highlighting and interactive collapsible JSON tree views.
+- **Keyboard Shortcuts Cheatsheet**: Searchable shortcuts modal and settings reference.
+
+### Security
+- Security fixes.
+
+---
+
+## [1.3.1] - 2026-09-29
+
+### Fixed
+- Path normalization and image scheme resolution in sandboxed environments.
+
+### Security
+- Security fixes.
+
+---
+
 ## [1.3.0] - 2026-09-30
 
 ### Added

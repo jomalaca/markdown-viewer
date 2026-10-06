@@ -6,3 +6,6 @@
 
 ### Verification
 <!-- Commands run and manual validation performed -->
+- [ ] Automated test suites passed (`./scripts/test_milestone*.sh`)
+- [ ] Documentation updated (README, ARCHITECTURE, ROADMAP if applicable)
+- [ ] Security phrasing policy adhered to (architectural guarantees and generic hardening only)

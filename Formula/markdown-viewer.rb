@@ -1,5 +1,5 @@
 class MarkdownViewer < Formula
-  desc "100% private, local-first Markdown viewer and editor with live GFM, math, and diagrams"
+  desc "Local-first Markdown viewer and editor with live GFM, math, and diagrams"
   homepage "https://github.com/jomalaca/markdown-viewer"
   url "https://github.com/jomalaca/markdown-viewer/releases/download/v1.6.0/markdown-viewer-1.6.0.tar.gz"
   sha256 "9ea027ee2631316574add81acc3e0e62db9ddfe91908d2435557de5abc357a71"
@@ -7,7 +7,6 @@ class MarkdownViewer < Formula
   head "https://github.com/jomalaca/markdown-viewer.git", branch: "main"
 
   depends_on :macos
-  depends_on xcode: ["14.0", :build]
 
   def install
     system "./scripts/build_macos.sh"
